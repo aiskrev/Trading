@@ -32,8 +32,9 @@ class ClaudePlanner:
         self.allowed_universe = sorted(allowed_universe)
         self.ids = ids
 
-    def build_payload(self, market: MarketSnapshot, account: AccountSnapshot, features: FeatureSet) -> Dict[str, Any]:
-        return {
+    def build_payload(self, market: MarketSnapshot, account: AccountSnapshot, features: FeatureSet,
+                      active_triggers: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
+        payload = {
             "strategy_version": self.strategy_version,
             "strategy_rules": self.strategy_rules,
             "allowed_universe": self.allowed_universe,
@@ -43,13 +44,17 @@ class ClaudePlanner:
             "valid_evidence_refs": sorted(market.evidence_refs() | account.evidence_refs() | features.evidence_refs()),
             "output_schema": ProposalBody.model_json_schema(),
         }
+        if active_triggers is not None:  # deterministic triggers that caused this evaluation
+            payload["active_triggers"] = active_triggers
+        return payload
 
-    def plan(self, market: MarketSnapshot, account: AccountSnapshot, features: FeatureSet) -> PlanResult:
+    def plan(self, market: MarketSnapshot, account: AccountSnapshot, features: FeatureSet,
+             active_triggers: Optional[List[Dict[str, str]]] = None) -> PlanResult:
         failure: Optional[str] = None
         raw: Optional[str] = None
         try:
             raw = self.llm.complete(self.prompt.text, self.prompt.prompt_id, self.prompt.version,
-                                    self.build_payload(market, account, features))
+                                    self.build_payload(market, account, features, active_triggers))
             body = parse_strict(raw, ProposalBody)
         except LLMUnavailable:
             failure = "LLM_UNAVAILABLE"
@@ -58,15 +63,27 @@ class ClaudePlanner:
         except Exception:  # any model-side surprise fails closed
             failure = "MODEL_FAILURE"
         if failure:
-            body = ProposalBody(decision=Decision.NO_TRADE, public_rationale=f"Fail-closed NO_TRADE: {failure}.")
-        proposal = OrderProposal(
+            body = ProposalBody(decision=Decision.NO_TRADE, public_rationale=f"Fail-closed NO_TRADE: {failure}.",
+                                reason_code=failure)
+        return PlanResult(self._wrap(body, market, account, self.llm.model_version), failure,
+                          raw if isinstance(raw, str) else None)
+
+    def no_trade(self, market: MarketSnapshot, account: AccountSnapshot, reason_code: str, detail: str) -> OrderProposal:
+        """Deterministic NO_TRADE without consulting the model (a prerequisite failed or no trigger fired)."""
+        body = ProposalBody(decision=Decision.NO_TRADE, reason_code=reason_code,
+                            public_rationale=f"NO_TRADE ({reason_code}): {detail}"[:1000])
+        return self._wrap(body, market, account, "none:deterministic-gate")
+
+    def _wrap(self, body: ProposalBody, market: MarketSnapshot, account: AccountSnapshot,
+              model_version: str) -> OrderProposal:
+        return OrderProposal(
             **body.model_dump(),
             proposal_id=self.ids.next("proposal"),
             market_snapshot_id=market.snapshot_id,
             account_snapshot_id=account.snapshot_id,
-            model_version=self.llm.model_version,
+            model_version=model_version,
             prompt_version=self.prompt.qualified_version,
             prompt_sha256=self.prompt.sha256,
             strategy_version=self.strategy_version,
         )
-        return PlanResult(proposal, failure, raw if isinstance(raw, str) else None)
+

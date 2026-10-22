@@ -35,9 +35,12 @@ class ProposalBody(Contract):
     invalidation_conditions: List[ShortText] = Field(default_factory=list, max_length=10)
     evidence_refs: List[EvidenceRef] = Field(default_factory=list, max_length=50)
     public_rationale: str = Field(min_length=1, max_length=1000)
+    reason_code: Optional[str] = Field(default=None, pattern=r"^[A-Z][A-Z0-9_]{1,63}$")  # why NO_TRADE
 
     @model_validator(mode="after")
     def _shape(self):
+        if self.decision is Decision.TRADE and self.reason_code is not None:
+            raise ValueError("reason_code is only for NO_TRADE")
         if self.decision is Decision.TRADE:
             missing = [f for f in _TRADE_FIELDS if getattr(self, f) is None]
             if missing:

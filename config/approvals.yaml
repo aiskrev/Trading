@@ -36,3 +36,18 @@ approvals:
       execution-assumptions.v1. Tests: tests/backtest/test_dataset_backtest.py. Approved before commit;
       the approving commit is the one that adds this entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0003
+    date: 2026-10-22
+    approver: project owner
+    approved_via: Claude Code session (owner selected "Approve for BACKTEST")
+    statement: "Approve strategy mean-reversion-demo.v1 (config d0a9c0f5..., trigger code b84479b6...) for BACKTEST only, as APR-0003."
+    modes: [BACKTEST]
+    files:
+      config/strategies/mean-reversion-demo.v1.yaml: d0a9c0f5c993aaffcea3839e39de85a19d75e1d261392e123e7dbacf0e09e19c
+      src/trading_agent/strategy/triggers.py: b84479b674a4de606390266f088c9fb91a47b64b2647604ff9535d7ce4230b59
+    code_scope: >-
+      Strategy mean-reversion-demo.v1: deterministic ENTRY (flat and dev_from_sma_10_bps <= -30) and
+      EXIT (held and >= 0) triggers, max 5000 notional per order. Operated only through the
+      pre-evaluation gate (orchestration/evaluation_gate.py): freshness, reconciliation, mode,
+      kill switch, universe, trigger; any UNKNOWN => NO_TRADE with reason_code.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

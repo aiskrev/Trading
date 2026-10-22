@@ -38,4 +38,6 @@ def test_replay_with_missing_recordings_fails_closed():
     e = engine(RecordedLLM({}, "empty"), RecordedLLM({}, "empty"))
     report = e.run()
     assert report.fills == []
-    assert report.metrics.get("planner_llm_unavailable") == report.ticks
+    # the model is consulted only when a deterministic trigger fires; every such call fails closed
+    assert report.metrics.get("planner_llm_unavailable", 0) >= 1
+    assert report.metrics.get("gate_no_trigger", 0) + report.metrics["planner_llm_unavailable"] <= report.ticks

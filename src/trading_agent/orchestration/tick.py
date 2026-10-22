@@ -56,6 +56,7 @@ class Trace:
         self.planner_raw: Optional[str] = None
         self.planner_failure: Optional[str] = None
         self.critic_raw: Optional[str] = None
+        self.gate_reason: Optional[str] = None
 
     @contextmanager
     def timed(self, stage: str):
@@ -80,8 +81,9 @@ class TradingPipeline:
     def __init__(self, config: RuntimeConfig, planner: ClaudePlanner, critic: Optional[ClaudeCritic],
                  gateway: RiskGateway, execution: ExecutionPort, ledger: AuditLedger,
                  state: TradingStateMachine, reconciler: Reconciler, book: Book, clock: Clock,
-                 metrics: Optional[Metrics] = None) -> None:
+                 metrics: Optional[Metrics] = None, gate=None) -> None:
         self.config = config
+        self.gate = gate  # EvaluationGate; None only in unit-test harnesses that probe the gateway directly
         self.planner = planner
         self.critic = critic
         self.gateway = gateway
@@ -126,15 +128,36 @@ class TradingPipeline:
         account = self.book.snapshot(now)
         trace.account = account
         broker = BrokerAccountView(source_id="execution", as_of=now, positions=self.execution.broker_positions())
-        with trace.timed("planner"):
-            plan = self.planner.plan(market, account, features)
-        trace.planner_raw, trace.planner_failure = plan.raw_output, plan.failure
-        proposal = plan.proposal
-        if plan.failure:
-            self.metrics.inc(f"planner_{plan.failure.lower()}")
-            if not self._audit(AuditEventType.SCHEMA_FAILURE, market, proposal=proposal,
-                               details={"reason": plan.failure}):
-                return TickResult(proposal=proposal, skipped="AUDIT_FAILURE")
+        gate = None
+        if self.gate is not None:
+            with trace.timed("gate"):
+                gate = self.gate.check(market, account, broker, features, self.state.state, now)
+            trace.gate_reason = gate.reason_code
+            if gate.reason_code == "KILL_SWITCH_ACTIVE":
+                self._trip(TradingState.HALTED, "KILL_SWITCH", market)
+        if gate is not None and not gate.ok:
+            # A prerequisite is not met (or nothing triggered): NO_TRADE with a reason, model not consulted.
+            self.metrics.inc(f"gate_{gate.reason_code.lower()}")
+            proposal = self.planner.no_trade(market, account, gate.reason_code, gate.detail)
+        else:
+            hits = gate.triggers if gate is not None else None
+            with trace.timed("planner"):
+                plan = self.planner.plan(market, account, features, _trigger_context(hits))
+            trace.planner_raw, trace.planner_failure = plan.raw_output, plan.failure
+            proposal = plan.proposal
+            if plan.failure:
+                self.metrics.inc(f"planner_{plan.failure.lower()}")
+                if not self._audit(AuditEventType.SCHEMA_FAILURE, market, proposal=proposal,
+                                   details={"reason": plan.failure}):
+                    return TickResult(proposal=proposal, skipped="AUDIT_FAILURE")
+            if hits is not None and proposal.decision is Decision.TRADE and \
+                    (proposal.symbol, proposal.side.value) not in {(h.symbol, h.side) for h in hits}:
+                # the model may only act on what the deterministic trigger selected
+                self.metrics.inc("gate_proposal_not_triggered")
+                trace.gate_reason = "PROPOSAL_NOT_TRIGGERED"
+                proposal = self.planner.no_trade(market, account, "PROPOSAL_NOT_TRIGGERED",
+                                                 f"model proposed {proposal.side.value} {proposal.symbol}; "
+                                                 f"active triggers {[(h.symbol, h.side) for h in hits]}")
 
         critic = None
         if proposal.decision is Decision.TRADE and self.critic is not None:
@@ -149,6 +172,8 @@ class TradingPipeline:
                                             + trace.timings_ms.get("planner", 0.0), 3)
         self.metrics.inc(f"risk_{result.decision.verdict.value.lower()}")
         details = {"proposal_id": proposal.proposal_id}
+        if proposal.reason_code:
+            details["reason_code"] = proposal.reason_code
         if proposal.symbol and proposal.symbol in market.quotes:
             details["decision_mid"] = str(market.quotes[proposal.symbol].mid)
         # Write-ahead: the decision is durable before anything can be submitted.
@@ -232,6 +257,13 @@ class TradingPipeline:
             self.metrics.inc("audit_write_failure")
             self.state.trip(TradingState.HALTED, "AUDIT_WRITE_FAILURE", self.clock.now())
             return False
+
+
+def _trigger_context(hits) -> Optional[List[Dict[str, str]]]:
+    if hits is None:
+        return None
+    return [{"symbol": h.symbol, "trigger": h.kind.value, "side": h.side, "feature_value": str(h.feature_value)}
+            for h in hits]
 
 
 def _broker_result(execution: ExecutionResult, order: ApprovedOrder) -> str:

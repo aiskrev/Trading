@@ -107,6 +107,19 @@
       "title": "Public Rationale",
       "type": "string"
     },
+    "reason_code": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Z][A-Z0-9_]{1,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
     "requested_notional": {
       "anyOf": [
         {

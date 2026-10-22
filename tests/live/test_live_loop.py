@@ -33,7 +33,11 @@ def test_every_cycle_persists_a_packet_including_no_trade(tmp_path):
     out = drive(runner, replay, clock, 20)            # 18:50 .. 19:09, AAA dips at 19:00
     stored = packets(tmp_path / "run")
     assert len(stored) == len(out) == 20
-    assert stored[0].outcome == "NO_TRADE" and stored[0].planner_raw_output.startswith("{")
+    assert stored[0].outcome == "NO_TRADE" and stored[0].proposal.reason_code in ("MARKET_DATA_UNKNOWN", "NO_TRIGGER")
+    assert stored[0].planner_raw_output is None                         # no trigger => model not consulted
+    consulted = [p for p in stored if p.planner_raw_output]
+    assert consulted and all(p.at >= at("19:00") for p in consulted)    # only on the 19:00 dip trigger
+    assert all(p.proposal.reason_code for p in stored if p.outcome == "NO_TRADE" and not p.planner_raw_output)
     outcomes = {p.outcome for p in stored}
     assert "APPROVED" in outcomes or "REDUCED" in outcomes
     assert all(p.attribution.risk_policy_version == "risk-policy.v2" for p in stored)
@@ -74,16 +78,19 @@ def test_consecutive_model_errors_go_reduce_only(tmp_path):
     def broken(payload):
         raise LLMUnavailable("timeout")
     runner, replay, clock = fresh(tmp_path, planner_fn=broken)
-    drive(runner, replay, clock, 3)
+    drive(runner, replay, clock, 10)                                    # no trigger yet: model never called
+    assert runner.state.state is TradingState.NORMAL
+    drive(runner, replay, clock, 3)                                     # 19:00-19:02: trigger, model fails x3
     assert runner.state.state is TradingState.REDUCE_ONLY
     assert load_and_compute(tmp_path / "run", SESSION).model_errors == 3
 
 
 def test_schema_failures_are_counted_and_never_trade(tmp_path):
     runner, replay, clock = fresh(tmp_path, planner_fn=lambda p: "Sure! {not json}")
-    out = drive(runner, replay, clock, 5)
+    out = drive(runner, replay, clock, 20)
     assert all(p.fills == [] for p in out)
-    assert load_and_compute(tmp_path / "run", SESSION).schema_failures == 5
+    consulted = sum(1 for p in out if p.planner_raw_output)
+    assert consulted >= 1 and load_and_compute(tmp_path / "run", SESSION).schema_failures == consulted
 
 
 def test_packet_write_failure_halts(tmp_path):
@@ -187,7 +194,7 @@ def test_reduce_only_does_not_carry_into_the_next_session(tmp_path):
     def broken(payload):
         raise LLMUnavailable("timeout")
     runner, replay, clock = fresh(tmp_path, planner_fn=broken)
-    drive(runner, replay, clock, 3)
+    drive(runner, replay, clock, 13)
     assert runner.state.state is TradingState.REDUCE_ONLY
     nxt, _ = make_runner(tmp_path / "run", clock, session_id="2026-01-14", start=clock.now())
     assert nxt.state.state is TradingState.NORMAL

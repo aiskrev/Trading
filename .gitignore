@@ -21,3 +21,6 @@ secrets*.json
 
 # Planner eval request exports are reproducible (python -m evals.planner_quality.run export ...)
 evals/planner_quality/requests/
+
+# Operator kill switch (presence stops new evaluations); never committed
+ops/KILL_SWITCH

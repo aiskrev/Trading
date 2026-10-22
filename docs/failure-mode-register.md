@@ -89,3 +89,12 @@ reaches a snapshot, so the gateway's NO_QUOTE / freshness rules deny any order t
 | F53 | Torn ledger line / book vs broker mismatch at restart | ledger resume + reconcile | line set aside; mismatch => HALTED | `test_torn_execution_record_is_detected_and_halts` |
 | F54 | Corrupted ledger chain | ledger resume | refuse to start | `test_corrupted_ledger_refuses_to_start` |
 | F55 | HALT at end of session | recovery | stays HALTED until acknowledged | `test_halt_survives_into_the_next_session_until_acknowledged` |
+
+### Pre-evaluation gate (see docs/operating-rules.md)
+
+| ID | Failure | Detection | Response | Test |
+|---|---|---|---|---|
+| F56 | Strategy or risk version not approved / edited after approval | gate rule 0 (hash-bound approvals) | NO_TRADE, model not called | `test_unapproved_strategy_is_never_operated`, `test_edited_strategy_file_loses_its_approval` |
+| F57 | Any prerequisite UNKNOWN (data, account, reconciliation, kill switch, venue, instrument status, features) | gate rules 1-5 | NO_TRADE + reason_code, model not called | `test_each_prerequisite_yields_no_trade_with_reason`, `test_any_unknown_prerequisite_means_no_trade_and_no_model_call` |
+| F58 | Kill switch set by operator | gate rule 3 | NO_TRADE and HALTED | `test_kill_switch_halts_the_pipeline` |
+| F59 | Model proposes something no trigger selected | post-model check | NO_TRADE PROPOSAL_NOT_TRIGGERED | `test_model_sees_triggers_and_may_only_act_on_them` |

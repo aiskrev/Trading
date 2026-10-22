@@ -1,0 +1,11 @@
+# Strategy definition. Released versions are immutable; change by adding a new version.
+# Operated only when an approval in config/approvals.yaml covers this file's SHA-256 and the
+# trigger code for the active mode.
+strategy_version: mean-reversion-demo.v1
+description: Long-only mean reversion on deviation from the 10-bar SMA of the mid price (demo).
+trigger:
+  feature: dev_from_sma_10_bps
+  entry_at_or_below_bps: "-30"     # ENTRY (BUY) only when flat in the symbol
+  exit_at_or_above_bps: "0"        # EXIT (SELL) only when holding the symbol
+  min_position_notional: "1"       # holdings below this count as flat (rounding dust)
+max_notional_per_order: "5000"

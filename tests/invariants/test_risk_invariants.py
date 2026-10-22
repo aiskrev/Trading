@@ -140,7 +140,7 @@ def test_every_approved_order_satisfies_every_limit(symbol, side, notional, offs
     assert decision.verdict in (RiskVerdict.APPROVE, RiskVerdict.REDUCE)
     assert critic_kind is not None  # critic_required
     if state is TradingState.REDUCE_ONLY:
-        assert side is Side.SELL and held > 0
+        assert side is Side.SELL and a.quantity(symbol) > 0  # only exits of the order's own symbol
     assert violations(order, decision, p, m, a, POLICY, T0, state, b, c) == []
 
 

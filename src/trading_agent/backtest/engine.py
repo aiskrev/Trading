@@ -26,6 +26,7 @@ from trading_agent.features.pipeline import FeaturePipeline
 from trading_agent.market_data.ports import MarketDataSource, RawTick
 from trading_agent.normalization.normalizer import Normalizer
 from trading_agent.observability.metrics import Metrics
+from trading_agent.orchestration.evaluation_gate import build_gate
 from trading_agent.orchestration.tick import TradingPipeline
 from trading_agent.planning.critic import ClaudeCritic
 from trading_agent.planning.planner import ClaudePlanner
@@ -108,6 +109,7 @@ class BacktestEngine:
         if config.risk_policy_version != policy.version:
             raise ConfigError(f"runtime config expects {config.risk_policy_version}, loaded {policy.version}")
         self.approval = require_approval(policy, config.mode, config_dir)
+        self._config_dir = Path(config_dir)
         # Historical fixtures carry no halt flags; the default declares every quoted symbol TRADING.
         # Replace it with real halt data when backtesting periods that contain halts.
         self.instrument_status = instrument_status
@@ -161,8 +163,10 @@ class BacktestEngine:
                                        quote_for=lambda s: self._current.quotes.get(s) if self._current else None,
                                        clock=self.clock, ids=self.ids, **extra)
         self.broker = broker
+        self.gate = build_gate(self.config, self.policy, [self._config_dir.parent / "ops" / "KILL_SWITCH"],
+                               config_dir=self._config_dir)
         return TradingPipeline(self.config, planner, critic, gateway, broker, self.ledger, self.state,
-                               Reconciler(), self.portfolio, self.clock, self.metrics)
+                               Reconciler(), self.portfolio, self.clock, self.metrics, gate=self.gate)
 
     def _quote_after(self, symbol: str, ts: datetime) -> Optional[Quote]:
         """First quote at or after `ts` on the same day (fills never cross the close)."""

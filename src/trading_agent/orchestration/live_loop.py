@@ -46,6 +46,7 @@ from trading_agent.features.pipeline import FeaturePipeline
 from trading_agent.market_data.streaming import StreamingQuoteAdapter
 from trading_agent.normalization.normalizer import Normalizer
 from trading_agent.observability.metrics import Metrics
+from trading_agent.orchestration.evaluation_gate import build_gate
 from trading_agent.orchestration.tick import TickResult, TradingPipeline
 from trading_agent.planning.critic import ClaudeCritic
 from trading_agent.planning.planner import ClaudePlanner
@@ -80,7 +81,8 @@ class LiveLoopRunner:
                  instrument_status: Callable[[str], InstrumentStatus] = lambda s: InstrumentStatus.UNKNOWN,
                  venue_status: Callable[[datetime], VenueStatus] = lambda t: VenueStatus.UNKNOWN,
                  cost_model: Optional[CostModel] = None, starting_cash: Decimal = Decimal(100000),
-                 run_id: str = "paper", prompts_dir: Path = ROOT / "prompts") -> None:
+                 run_id: str = "paper", prompts_dir: Path = ROOT / "prompts",
+                 config_dir: Path = ROOT / "config") -> None:
         assert_mode_permitted(config.mode)  # PAPER is refused until the owner permits and approves it
         self.dir = Path(run_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
@@ -120,8 +122,10 @@ class LiveLoopRunner:
                                 sorted(policy.universe), self.ids)
         critic = ClaudeCritic(critic_llm, load_prompt(prompts_dir, "risk_critic",
                                                       config.prompt_versions["risk_critic"])) if critic_llm else None
+        self.gate = build_gate(config, policy, [Path(config_dir).parent / "ops" / "KILL_SWITCH",
+                                                self.dir / "KILL_SWITCH"], config_dir=config_dir)
         self.pipeline = TradingPipeline(config, planner, critic, self.gateway, self.broker, self.ledger, self.state,
-                                        Reconciler(), self.portfolio, clock, self.metrics)
+                                        Reconciler(), self.portfolio, clock, self.metrics, gate=self.gate)
         self.recovery = self._recover(ledger_torn, packets_open.torn_line_moved_to)
 
     # ------------------------------------------------------------------ manifest / recovery

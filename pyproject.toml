@@ -90,6 +90,18 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
+name = "Strategy triggers are deterministic: no LLM, risk, execution or orchestration"
+type = "forbidden"
+source_modules = ["trading_agent.strategy"]
+forbidden_modules = [
+    "trading_agent.planning",
+    "trading_agent.risk",
+    "trading_agent.execution",
+    "trading_agent.orchestration",
+    "trading_agent.backtest",
+]
+
+[[tool.importlinter.contracts]]
 name = "Contracts and core are leaf layers"
 type = "forbidden"
 source_modules = ["trading_agent.contracts", "trading_agent.core"]
