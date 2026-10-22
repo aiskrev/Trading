@@ -59,3 +59,11 @@ class AuthRejected(TradingAgentError):
 
 class ReadOnlyViolation(TradingAgentError):
     """A data adapter attempted a request outside its read-only allow-list."""
+
+
+class VaultError(TradingAgentError):
+    """Vault could not be opened, is corrupted/tampered, or an operation failed. Fail closed."""
+
+
+class VaultDenied(VaultError):
+    """A vault client was not allowed to do what it asked. The reason is logged, never the value."""

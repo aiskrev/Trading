@@ -6,7 +6,7 @@ no credentials, no unrestricted order submission.
 
 Read first: [`CLAUDE.md`](CLAUDE.md) (mandatory policy) · [architecture](docs/architecture.md) ·
 [threat model](docs/threat-model.md) · [failure-mode register](docs/failure-mode-register.md) ·
-[ADR 0001](docs/adr/0001-planner-never-executes.md) · [risk gateway](docs/risk-gateway.md) · [planner evaluation](docs/evals/planner-evaluation.md) · [backtesting](docs/backtesting.md) · [PAPER plan](docs/paper-trading-plan.md) · [operating rules](docs/operating-rules.md) · [roadmap](docs/roadmap.md) · [ADR 0002](docs/adr/0002-target-architecture-and-promotion-path.md) · [ADR 0003](docs/adr/0003-risk-service-key-separation.md)
+[ADR 0001](docs/adr/0001-planner-never-executes.md) · [risk gateway](docs/risk-gateway.md) · [planner evaluation](docs/evals/planner-evaluation.md) · [backtesting](docs/backtesting.md) · [PAPER plan](docs/paper-trading-plan.md) · [operating rules](docs/operating-rules.md) · [roadmap](docs/roadmap.md) · [ADR 0002](docs/adr/0002-target-architecture-and-promotion-path.md) · [ADR 0003](docs/adr/0003-risk-service-key-separation.md) · [vault](docs/vault.md)
 
 ## Quick start
 

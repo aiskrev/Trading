@@ -97,8 +97,11 @@ Acceptance tests: the nine in ADR 0003, plus: planner/orchestrator cannot reach 
 modules; option B (risk service has its own read-only data) passes the oracle property test with a
 lying orchestrator.
 
-Gate: **[owner]** KMS/secrets-manager key; approval entries for the new /risk and /execution
-code; certificates.
+Decisions made (ADR 0003): self-built vault now (KMS/HSM before CANARY_LIVE), risk service reads its
+own data, order TTL 5 s, skew 1 s.
+
+Gate: **[owner]** initialise the vault with your own passphrase (`scripts/vault.py init`, never in
+chat); approval entries for the new /risk, /execution and vault code; certificates.
 
 ## P6: PAPER with Alpaca Paper
 

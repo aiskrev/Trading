@@ -62,3 +62,16 @@ Review this document whenever a module crosses a trust boundary or a new mode is
 5. Structured invalidation conditions so the auditor can evaluate them (section 7 of the audit).
 6. Real vendor `StreamTransport` / broker `HttpTransport` plug-ins: TLS verification, host pinning,
    read-only token scopes confirmed with the vendor, and their own threat review (T16, T17, T21).
+
+### Vault (see docs/vault.md, ADR 0003)
+
+| ID | Threat | Controls | Test |
+|---|---|---|---|
+| T22 | Vault file or backup leaks | AES-256-GCM, scrypt-derived key, passphrase never stored, MAC over ACLs/metadata | `test_nothing_sensitive_is_in_the_file_or_log`, `test_acl_tampering_is_detected` |
+| T23 | Signing key read out by a service | no export operation; signing keys unreadable as secrets even if an ACL lists one | `test_no_api_returns_private_key_material` |
+| T24 | Overprivileged client | per-client ACL, re-checked on every call, revocation | `test_acl_least_privilege`, `test_bad_tokens_and_revoked_clients` |
+| T25 | Unrecorded access | access allowed only after its audit record is written; log is hash-chained | `test_access_is_refused_when_the_audit_log_cannot_be_written` |
+| T26 | Old vault file restored (rollback) | generation counter checked against the access log at open | `test_old_file_restored_over_a_newer_one_is_refused` |
+| T27 | Ciphertext swapped between entries | name/kind/version bound as authenticated data | `test_ciphertext_cannot_be_moved_under_another_name` |
+| T28 | Vault committed to git or leaked via logs | CLI refuses paths inside a work tree, `.gitignore`, push-gate file-name block, redaction, no repr/pickle | `test_no_secret_in_logging_repr_or_pickle`, `test_cli_flow_and_refusals` |
+| T29 | Vault used by non-root code | import-linter: only composition roots may import `secret_store.vault` | `lint-imports`, `test_vault_is_not_importable_outside_composition_roots` |

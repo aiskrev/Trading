@@ -98,3 +98,11 @@ reaches a snapshot, so the gateway's NO_QUOTE / freshness rules deny any order t
 | F57 | Any prerequisite UNKNOWN (data, account, reconciliation, kill switch, venue, instrument status, features) | gate rules 1-5 | NO_TRADE + reason_code, model not called | `test_each_prerequisite_yields_no_trade_with_reason`, `test_any_unknown_prerequisite_means_no_trade_and_no_model_call` |
 | F58 | Kill switch set by operator | gate rule 3 | NO_TRADE and HALTED | `test_kill_switch_halts_the_pipeline` |
 | F59 | Model proposes something no trigger selected | post-model check | NO_TRADE PROPOSAL_NOT_TRIGGERED | `test_model_sees_triggers_and_may_only_act_on_them` |
+
+### Vault
+
+| ID | Failure | Detection | Response | Test |
+|---|---|---|---|---|
+| F60 | Wrong passphrase / modified or corrupted vault file | MAC and AES-GCM tag | refuse to open | `test_passphrase_is_never_stored_and_wrong_one_fails`, `test_ciphertext_bit_flip_is_detected` |
+| F61 | Access log unwritable or tampered | `ChainedLog` | deny access / refuse to open | `test_access_is_refused_when_...`, `test_tampered_access_log_refuses_to_open` |
+| F62 | Expired, not-yet-valid or revoked signing key | validity window + revoked flag | deny signing | `test_key_validity_window_and_revocation`, `test_revoked_key_cannot_sign` |

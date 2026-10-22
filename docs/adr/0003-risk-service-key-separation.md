@@ -1,7 +1,8 @@
 # ADR 0003: Separating the order-signing key from the order-sending service
 
-Status: **Design proposal** (no code yet; implementing it touches /risk, /execution and credentials,
-so it needs tests plus an explicit approval)
+Status: **Design accepted by the owner on the three open questions (see Decisions); implementation in
+progress.** Implementing it touches /risk, /execution and credentials, so every step needs tests plus an
+explicit approval entry.
 
 ## Problem
 
@@ -144,8 +145,49 @@ permission), is set only by a human, and an unreadable state means "active".
 4. Move the signing key to the secrets manager / KMS (owner action: provide it; never in chat).
 5. Add leader epoch and the external kill switch layers.
 
-## Open questions for the owner
+## Decisions (owner answers, 2026-10-22)
 
-* KMS/HSM or secrets-manager signing available in the target environment?
-* Option A or B for SHADOW (recommended: A) and PAPER (recommended: B)?
-* Maximum order TTL (proposed <= 10 s) and clock-skew tolerance (proposed 1 s)?
+1. **Secrets and signing keys: no KMS/HSM is available, so the project builds its own vault**
+   (`src/trading_agent/secret_store/vault.py`, ADR text below). Owner instruction: "create a secrets
+   manager".
+2. **The risk service reads its own market and account data (option B)** for PAPER and above. It takes
+   only the *proposal* from the orchestrator.
+3. **Order lifetime and clock skew: delegated to the engineering recommendation:**
+   * `order_ttl_seconds = 5` (hard maximum 10). The signed order only has to survive the hop from the
+     risk service to the execution service, including one retry of the same `order_id`. Anything slower
+     is stale for a limit order priced at the touch, and a short window shrinks replay exposure.
+   * `clock_skew_seconds = 1`, and both services must be NTP-synchronised. If a service measures its clock
+     more than 500 ms away from a reference, it refuses to sign/send and alerts (fail closed). Skew
+     tolerance extends the accepted window on the early side only; the expiry is never extended.
+   * A retry after expiry is not resent: the order goes back through the risk service, which re-checks
+     everything and issues a *new* `order_id`.
+
+## Vault (the self-built secrets manager)
+
+What it is: an encrypted, access-controlled store for secrets and **sign-only signing keys**, with
+a hash-chained access log. What it is not: an HSM. It runs on hosts the operator controls.
+
+* **At rest:** every entry is AES-256-GCM encrypted under a key derived with scrypt from a passphrase
+  that only the operator holds (typed at start; never stored, logged or passed as an argument). Entry
+  name and version are authenticated data, so entries cannot be swapped or rolled back undetected.
+* **Signing keys** (Ed25519) are generated inside the vault and have **no export operation**. The only
+  operations are `sign(key_id, message)` and `public_key(key_id)`. Secrets (broker tokens, API keys)
+  are readable by name, only by clients whose ACL allows that name.
+* **Clients** are identified by a per-client random token, stored only as a hash. The ACL says which
+  secret names a client may read and which signing keys it may use. The planner/orchestrator client has
+  none.
+* **Access log:** each allow/deny (who, what name, outcome, time; never values) is appended to a
+  hash-chained `ChainedLog`. A log write failure denies the access.
+* **Honest limits:** it protects against the vault file or backups leaking, secrets in git/logs/
+  prompts, an unauthorised client, and tampering. It does **not** protect against an attacker with root
+  on the host or a debugger on the unlocked process, and the passphrase is a single point of failure.
+  Before CANARY_LIVE the `Signer` and `SecretsProvider` backends should move to a managed KMS/HSM;
+  both are interfaces, so that is a configuration change plus an approval, not a rewrite.
+* **Process separation** (vault and risk service as separate OS processes, mTLS) remains migration
+  step 3; the library is written so the same API can sit behind that boundary.
+
+## Remaining open questions
+
+* Passphrase custody: who holds it, and a recovery procedure (offline backup of the vault file plus a
+  sealed passphrase copy), owner to decide.
+* Which host(s) run the vault and risk service (needed for the process-separation step).

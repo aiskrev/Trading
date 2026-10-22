@@ -24,3 +24,8 @@ evals/planner_quality/requests/
 
 # Operator kill switch (presence stops new evaluations); never committed
 ops/KILL_SWITCH
+
+# Vault files and access logs are never committed
+*.vault
+*.vault.*
+.trading-agent/

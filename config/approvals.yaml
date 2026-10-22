@@ -51,3 +51,21 @@ approvals:
       pre-evaluation gate (orchestration/evaluation_gate.py): freshness, reconciliation, mode,
       kill switch, universe, trigger; any UNKNOWN => NO_TRADE with reason_code.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0004
+    date: 2026-10-22
+    approver: project owner
+    approved_via: Claude Code session (owner selected "Approve for BACKTEST")
+    statement: "Approve the in-house vault (secrets + sign-only keys) as the project's secrets manager, as APR-0004, for BACKTEST."
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/secret_store/vault.py: 2471324a9df2b19e87181c1b04687174a54a87c6c32e315ed07d5a2d52bb5684
+      scripts/vault.py: 7d4e8720ff4937624c8fe41b2390849bfdddc61edfde048ddc6947b89575523a
+      src/trading_agent/secret_store/ports.py: bdd5c97b3ae48ca1342dd613121f17f79727cb9d4be9d8b9bc6f04e578342d6f
+    code_scope: >-
+      In-house vault: AES-256-GCM/scrypt encrypted store, Ed25519 sign-only keys with validity windows
+      and revocation, per-client ACL, hash-chained access log, rollback detection, operator CLI that
+      refuses paths inside a git work tree. Interfaces SecretsProvider and Signer allow a later move to a
+      managed KMS/HSM. Contains no real credentials; the owner initialises it with their own passphrase.
+      Known limits recorded in ADR 0003 / docs/vault.md (not an HSM; single-host; passphrase is a single
+      point of failure). Approval is for BACKTEST only: PAPER and above need a new entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

@@ -11,6 +11,7 @@ dependencies = [
     "pydantic>=2.6,<3",
     "pyyaml>=6",
     "tzdata; sys_platform == 'win32'",
+    "cryptography>=48,<49",   # vault: AES-256-GCM, scrypt, Ed25519 (new dependency; hash-lock before PAPER)
 ]
 
 [project.optional-dependencies]
@@ -100,6 +101,17 @@ forbidden_modules = [
     "trading_agent.orchestration",
     "trading_agent.backtest",
 ]
+
+[[tool.importlinter.contracts]]
+name = "The vault is imported only by composition roots (scripts, tests, future service entry points)"
+type = "forbidden"
+source_modules = [
+    "trading_agent.account_data", "trading_agent.audit", "trading_agent.backtest", "trading_agent.contracts",
+    "trading_agent.core", "trading_agent.execution", "trading_agent.features", "trading_agent.market_data",
+    "trading_agent.normalization", "trading_agent.observability", "trading_agent.orchestration",
+    "trading_agent.planning", "trading_agent.reconciliation", "trading_agent.risk", "trading_agent.strategy",
+]
+forbidden_modules = ["trading_agent.secret_store.vault"]
 
 [[tool.importlinter.contracts]]
 name = "Contracts and core are leaf layers"

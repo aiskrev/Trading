@@ -31,7 +31,7 @@ SECRET_PATTERNS = [
     re.compile(r"(?i)(api[_-]?key|secret|passw(or)?d|pwd|token|refresh[_-]?token)\s*[:=]\s*['\"][^'\"\s]{8,}['\"]"),
     re.compile(r"(?i)(passw(or)?d|pass|pwd)\s*[:=]\s*[^\s'\"]{8,}"),
 ]
-BANNED_NAME = re.compile(r"(^|/)(\.env(\..*)?|.*\.(pem|key|p12|pfx)|id_(rsa|ed25519|ecdsa)|secrets?\.(ya?ml|json))$",
+BANNED_NAME = re.compile(r"(^|/)(\.env(\..*)?|.*\.(pem|key|p12|pfx|vault)|.*\.vault\..*|id_(rsa|ed25519|ecdsa)|secrets?\.(ya?ml|json))$",
                          re.IGNORECASE)
 
 
