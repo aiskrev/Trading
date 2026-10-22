@@ -147,6 +147,14 @@ permission), is set only by a human, and an unreadable state means "active".
    (step 3). Known limit: a raw 32-byte private seed is indistinguishable from a public key by length,
    so `TrustedKey` rejects signers, key objects and 64-byte encodings, not a mislabelled seed.
 2. Add the idempotency store and `client_order_id` derivation to the simulator, still in-process.
+   **Implemented** (`execution/idempotency.py`, APR-0006): the `order_id` is recorded durably (hash-chained,
+   fsynced) before the order is processed and closed after; reuse raises DuplicateOrder, an unwritable
+   record means nothing is sent. `client_order_id = "ta1-" + sha256(order_id, environment, account)[:40]`
+   (pinned by a test). Recovery (`resolve_unresolved`): broker lookup finds it => RESOLVED; absent and past
+   `expires_at` + skew => ABANDONED and never resent; otherwise, or if the lookup fails, the live loop HALTs
+   (`UNRESOLVED_ORDER`). Acceptance test 4 is covered by `tests/invariants/test_idempotency.py` and
+   `tests/live/test_live_idempotency.py`. For a real broker (P6), "absent" needs an added grace period
+   because broker lookups are eventually consistent; the simulator's book is authoritative.
 3. Split the risk service into its own process behind a narrow request/response schema; mTLS.
 4. Move the signing key to the secrets manager / KMS (owner action: provide it; never in chat).
 5. Add leader epoch and the external kill switch layers.

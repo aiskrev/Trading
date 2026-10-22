@@ -1,13 +1,13 @@
 from datetime import timedelta
 from decimal import ROUND_DOWN, Decimal
-from typing import Callable, Dict, Optional, Set
+from typing import Callable, Dict, Optional
 
 from trading_agent.contracts.execution import AckStatus, ApprovedOrder, BrokerAck, Fill
 from trading_agent.contracts.market import Quote
 from trading_agent.core.clock import Clock
-from trading_agent.core.errors import DuplicateOrder
 from trading_agent.core.types import IdFactory, Side
 from trading_agent.execution.cost_model import CostModel
+from trading_agent.execution.idempotency import IdempotencyStore, Phase, client_order_id
 from trading_agent.execution.ports import ExecutionResult
 from trading_agent.execution.verifier import OrderVerifier
 
@@ -22,12 +22,16 @@ class SimulatedBroker:
     * Partial fills: with `partial_fills`, quantity is capped at displayed size x max_participation;
       the IOC remainder is cancelled.
     * `faults` lets fault-injection tests make it reject, partially fill, or fill silently.
+    * Idempotency (ADR 0003 check 6): the order is recorded in the `IdempotencyStore` before it is processed
+      and closed after; the broker-side book of orders by `client_order_id` answers `lookup_order` so recovery
+      can tell whether a reserved-but-unclosed order was executed.
     """
 
     def __init__(self, verifier: OrderVerifier, cost_model: CostModel, quote_for: Callable[[str], Optional[Quote]],
                  clock: Clock, ids: IdFactory, latency_ms: int = 0,
                  fill_quote_after: Optional[Callable[[str, object], Optional[Quote]]] = None,
-                 partial_fills: bool = False, max_participation: Decimal = Decimal(1)) -> None:
+                 partial_fills: bool = False, max_participation: Decimal = Decimal(1),
+                 idempotency: Optional[IdempotencyStore] = None) -> None:
         if not isinstance(verifier, OrderVerifier):
             raise TypeError("SimulatedBroker needs an OrderVerifier (public keys only)")
         self._verifier = verifier
@@ -39,17 +43,21 @@ class SimulatedBroker:
         self._fill_quote_after = fill_quote_after
         self._partial = partial_fills
         self._participation = max_participation
-        self._seen: Set[str] = set()
+        self._idem = idempotency if idempotency is not None else IdempotencyStore.in_memory()
+        self._orders: Dict[str, BrokerAck] = {}   # the broker's own record, by client_order_id
         self._positions: Dict[str, Decimal] = {}
         self.faults = {"reject_next": 0, "partial_fill_ratio": None, "silent_fill_next": 0}
 
     def submit(self, order: ApprovedOrder) -> ExecutionResult:
         self._verifier.verify(order)  # raises OrderRefused (a ForgedOrder) on any failed check
-        if order.order_id in self._seen:
-            raise DuplicateOrder(order.order_id)
-        self._seen.add(order.order_id)
         now = self._clock.now()
+        cid = self._idem.reserve(order, now)   # durable before anything happens; DuplicateOrder if seen
+        result = self._execute(order, now)
+        self._orders[cid] = result.ack
+        self._idem.close(order.order_id, Phase.COMPLETED, result.ack.status.value, now)
+        return result
 
+    def _execute(self, order: ApprovedOrder, now) -> ExecutionResult:
         if self.faults["reject_next"] > 0:
             self.faults["reject_next"] -= 1
             return self._ack(order, AckStatus.REJECTED, "SIMULATED_REJECT", now)
@@ -95,6 +103,20 @@ class SimulatedBroker:
 
     def broker_positions(self) -> Dict[str, Decimal]:
         return {s: q for s, q in self._positions.items() if q != 0}
+
+    def lookup_order(self, client_order_id: str) -> Optional[BrokerAck]:
+        """The broker's answer to "did you get this order?"; None only if it never reached the broker."""
+        return self._orders.get(client_order_id)
+
+    def restore_positions(self, positions: Dict[str, Decimal]) -> None:
+        """Replace the position book after a restart (from the broker's own independent file)."""
+        self._positions = {s: Decimal(q) for s, q in positions.items()}
+
+    def order_book(self) -> Dict[str, BrokerAck]:
+        return dict(self._orders)
+
+    def restore_orders(self, orders: Dict[str, BrokerAck]) -> None:
+        self._orders = dict(orders)
 
     def apply_corporate_action(self, symbol: str, split_ratio: Optional[Decimal] = None,
                                delisted: bool = False) -> None:

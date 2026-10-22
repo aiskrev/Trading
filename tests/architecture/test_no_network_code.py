@@ -28,4 +28,4 @@ def test_no_network_libraries_imported_anywhere():
 def test_broker_execution_is_mock_only():
     assert registry.permitted_adapters() == {Mode.BACKTEST: "SimulatedBroker"}
     names = {p.stem for p in (SRC / "execution").glob("*.py")}
-    assert names == {"__init__", "ports", "registry", "simulated_broker", "cost_model", "verifier"}
+    assert names == {"__init__", "ports", "registry", "simulated_broker", "cost_model", "verifier", "idempotency"}

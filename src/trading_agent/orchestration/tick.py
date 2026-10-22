@@ -25,6 +25,7 @@ from trading_agent.core.clock import Clock
 from trading_agent.core.errors import AuditWriteFailure, DuplicateOrder, ForgedOrder
 from trading_agent.core.mode import RuntimeConfig
 from trading_agent.core.trading_state import TradingState, TradingStateMachine
+from trading_agent.execution.idempotency import client_order_id
 from trading_agent.execution.ports import ExecutionPort, ExecutionResult
 from trading_agent.normalization.validators import DataIssue
 from trading_agent.observability.metrics import Metrics
@@ -213,7 +214,8 @@ class TradingPipeline:
         self.metrics.inc(f"broker_{broker_result.lower()}")
         self._audit(AuditEventType.EXECUTION, market, proposal=proposal, acks=[execution.ack],
                     fills=execution.fills, broker_result=broker_result,
-                    details={"proposal_id": proposal.proposal_id, "order_id": order.order_id})
+                    details={"proposal_id": proposal.proposal_id, "order_id": order.order_id,
+                             "client_order_id": client_order_id(order)})
         if execution.ack.status is AckStatus.REJECTED:
             self._consecutive_rejects += 1
             if self._consecutive_rejects >= CONSECUTIVE_REJECTS_BEFORE_REDUCE_ONLY:

@@ -72,9 +72,11 @@ def test_invalid_config_refuses_to_start(tmp_path):
 
 def test_execution_port_surface_is_narrow():
     proto = {n for n, _ in inspect.getmembers(ExecutionPort, inspect.isfunction) if not n.startswith("_")}
-    assert proto == {"submit", "cancel", "broker_positions"}
+    assert proto == {"submit", "cancel", "broker_positions", "lookup_order"}  # lookup_order: read-only, recovery
     impl = {n for n in dir(SimulatedBroker) if not n.startswith("_")}
     # apply_corporate_action is a broker-side book event for BACKTEST (split/delisting): it places no order
-    assert impl == {"submit", "cancel", "broker_positions", "apply_corporate_action"}
+    # restore_*/order_book/lookup_order are book bookkeeping for restart recovery: none of them places an order
+    assert impl == {"submit", "cancel", "broker_positions", "apply_corporate_action", "lookup_order",
+                    "restore_positions", "restore_orders", "order_book"}
     params = list(inspect.signature(SimulatedBroker.submit).parameters)
     assert params == ["self", "order"]

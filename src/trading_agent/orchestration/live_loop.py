@@ -8,7 +8,9 @@ Run directory (survives restarts):
   manifest.json      run id, starting cash, versions, segments (one per process start), recoveries
   ledger.jsonl       hash-chained audit ledger (write-ahead DECISION records)
   packets.jsonl      hash-chained DecisionPackets, one per cycle (incl. NO_TRADE and skipped)
-  broker_book.json   the simulated broker's own position book (independent of the ledger)
+  broker_book.json   the simulated broker's own positions and orders (independent of the ledger)
+  idempotency.jsonl  hash-chained record of every order_id, written BEFORE it is sent; recovery settles
+                     any reserved-but-unclosed order by broker lookup, else HALTED
   halt_ack.json      optional human acknowledgement that clears a HALT for the NEXT session
 
 Fail closed for new risk on operational failures (ops-policy):
@@ -32,6 +34,7 @@ from trading_agent.backtest.portfolio import Portfolio
 from trading_agent.contracts.audit import Attribution, AuditEventType
 from trading_agent.contracts.base import Contract
 from trading_agent.contracts.decision_packet import DecisionPacket
+from trading_agent.contracts.execution import BrokerAck
 from trading_agent.contracts.market import InstrumentStatus, MarketSnapshot, VenueStatus
 from trading_agent.contracts.proposal import Decision
 from trading_agent.core.clock import Clock
@@ -41,6 +44,7 @@ from trading_agent.core.signing import BACKTEST_ACCOUNT_ALIAS, EphemeralSigner
 from trading_agent.core.trading_state import TradingState, TradingStateMachine
 from trading_agent.core.types import IdFactory
 from trading_agent.execution.cost_model import CostModel
+from trading_agent.execution.idempotency import IdempotencyStore, resolve_unresolved
 from trading_agent.execution.registry import create_execution_port
 from trading_agent.execution.verifier import OrderVerifier
 from trading_agent.features.pipeline import FeaturePipeline
@@ -112,13 +116,14 @@ class LiveLoopRunner:
         self.normalizer = Normalizer(primary, secondary)
         self._current: Optional[MarketSnapshot] = None
 
+        self.idempotency, idem_open = IdempotencyStore.open(self.dir / "idempotency.jsonl")
         signer = EphemeralSigner()  # a restart issues a new key; orders signed before it no longer verify
         verifier = OrderVerifier([signer.trusted_key()], config.mode, BACKTEST_ACCOUNT_ALIAS,
                                  {policy.source_sha256}, clock)
         self.gateway = RiskGateway(policy, config.mode, signer, self.ids, clock)
         self.broker = create_execution_port(config.mode, verifier=verifier, cost_model=cost_model or CostModel(),
                                             quote_for=lambda s: self._current.quotes.get(s) if self._current else None,
-                                            clock=clock, ids=self.ids, partial_fills=True)
+                                            clock=clock, ids=self.ids, partial_fills=True, idempotency=self.idempotency)
         planner = ClaudePlanner(planner_llm, load_prompt(prompts_dir, "trading_planner",
                                                          config.prompt_versions["trading_planner"]),
                                 config.strategy_version, {"name": config.strategy_version},
@@ -129,7 +134,7 @@ class LiveLoopRunner:
                                                 self.dir / "KILL_SWITCH"], config_dir=config_dir)
         self.pipeline = TradingPipeline(config, planner, critic, self.gateway, self.broker, self.ledger, self.state,
                                         Reconciler(), self.portfolio, clock, self.metrics, gate=self.gate)
-        self.recovery = self._recover(ledger_torn, packets_open.torn_line_moved_to)
+        self.recovery = self._recover(ledger_torn, packets_open.torn_line_moved_to, idem_open.torn_line_moved_to)
 
     # ------------------------------------------------------------------ manifest / recovery
     def _load_manifest(self, run_id: str, starting_cash: Decimal) -> Dict[str, Any]:
@@ -145,14 +150,19 @@ class LiveLoopRunner:
         self._write_json(path, m)
         return m
 
-    def _recover(self, ledger_torn: Optional[Path], packets_torn: Optional[Path]) -> Dict[str, Any]:
+    def _recover(self, ledger_torn: Optional[Path], packets_torn: Optional[Path],
+                 idempotency_torn: Optional[Path] = None) -> Dict[str, Any]:
         records = self.ledger.records
         info: Dict[str, Any] = {"segment": self.segment, "at": self.clock.now().isoformat(),
                                 "ledger_records": len(records), "packets": len(self.packets.items),
-                                "torn_ledger_line": bool(ledger_torn), "torn_packet_line": bool(packets_torn)}
+                                "torn_ledger_line": bool(ledger_torn), "torn_packet_line": bool(packets_torn),
+                                "torn_idempotency_line": bool(idempotency_torn)}
         if not records:
             self.portfolio.start_session()
             info["kind"] = "fresh_start"
+            if self.idempotency.unresolved():  # orders on record but no ledger: cannot be explained => HALTED
+                self._settle_orders(info, self._empty_market())
+                self.state.trip(TradingState.HALTED, "ORDERS_WITHOUT_LEDGER", self.clock.now())
             return info
         # 1. rebuild the internal book from the ledger (the only source of truth for our own fills)
         for r in records:
@@ -168,8 +178,9 @@ class LiveLoopRunner:
         if not same_session:
             self.portfolio.start_session()
         # 2. restore the broker's own book from its independent file
-        book = self._read_broker_book()
-        _restore_simulated_book(self.broker, book)
+        positions, orders = self._read_broker_book()
+        self.broker.restore_positions(positions)
+        self.broker.restore_orders(orders)
         # 3. restore trading state; never resume better than the floor inside a session
         restored = records[-1].trading_state
         info["restored_state"] = restored.value
@@ -196,11 +207,32 @@ class LiveLoopRunner:
             self.pipeline.record_event(AuditEventType.RECONCILIATION, market, {
                 "reason": "RESTART_RECONCILIATION_MISMATCH",
                 "mismatches": ";".join(f"{m.symbol}:{m.internal}!={m.broker}" for m in report.mismatches)})
+        self._settle_orders(info, market)
         info["kind"] = "restart_same_session" if same_session else "new_session"
         info["state_after"] = self.state.state.value
         self.manifest["recoveries"].append(info)
         self._write_json(self.dir / "manifest.json", self.manifest)
         return info
+
+    def _settle_orders(self, info: Dict[str, Any], market: MarketSnapshot) -> None:
+        """Orders reserved before a crash but never closed: ask the broker; not knowing => HALTED."""
+        if not self.idempotency.unresolved():
+            return
+        try:
+            resolved, pending = resolve_unresolved(self.idempotency, self.broker.lookup_order, self.clock.now())
+        except Exception as exc:
+            resolved, pending = [], self.idempotency.unresolved()
+            info["order_lookup_error"] = type(exc).__name__
+        info["orders_settled"] = [f"{r.order_id}:{r.phase.value}:{r.outcome}" for r in resolved]
+        info["orders_unresolved"] = [r.order_id for r in pending]
+        for r in resolved:
+            self.pipeline.record_event(AuditEventType.RECONCILIATION, market, {
+                "reason": "ORDER_SETTLED_AT_RESTART", "order_id": r.order_id, "phase": r.phase.value,
+                "outcome": r.outcome})
+        if pending:
+            self.state.trip(TradingState.HALTED, "UNRESOLVED_ORDER", self.clock.now())
+            self.pipeline.record_event(AuditEventType.STATE_CHANGE, market, {
+                "reason": "UNRESOLVED_ORDER", "to": "HALTED", "orders": ",".join(info["orders_unresolved"])})
 
     def _halt_acknowledged(self, records) -> bool:
         ack_path = self.dir / "halt_ack.json"
@@ -296,13 +328,16 @@ class LiveLoopRunner:
     def _save_broker_book(self) -> None:
         self._write_json(self.dir / "broker_book.json",
                          {"positions": {s: str(q) for s, q in self.broker.broker_positions().items()},
+                          "orders": {cid: a.model_dump(mode="json") for cid, a in self.broker.order_book().items()},
                           "segment": self.segment, "at": self.clock.now().isoformat()})
 
-    def _read_broker_book(self) -> Dict[str, Decimal]:
+    def _read_broker_book(self) -> "tuple":
         path = self.dir / "broker_book.json"
         if not path.exists():
-            return {}
-        return {s: Decimal(q) for s, q in json.loads(path.read_text(encoding="utf-8"))["positions"].items()}
+            return {}, {}
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        return ({s: Decimal(q) for s, q in raw["positions"].items()},
+                {cid: BrokerAck.model_validate(a) for cid, a in raw.get("orders", {}).items()})
 
     @staticmethod
     def _write_json(path: Path, obj) -> None:
@@ -346,17 +381,3 @@ class LiveLoopRunner:
             acks=[execu.ack] if execu else [], fills=list(execu.fills) if execu else [],
             timings_ms=dict(tr.timings_ms) if tr else {},
             signal_to_proposal_ms=tr.signal_to_proposal_ms if tr else None, errors=errors)
-
-
-def _restore_simulated_book(broker, positions: Dict[str, Decimal]) -> None:
-    """Restore the BACKTEST/PAPER simulator's position book after a restart.
-
-    The simulator has no public restore method and /execution is frozen under APR-0002, so this
-    sets its book directly. Follow-up (needs an /execution change + approval): add
-    SimulatedBroker.restore_positions() and use it here.
-    """
-    book = getattr(broker, "_positions", None)
-    if book is None:
-        raise ConfigError("execution port does not support book restore")
-    book.clear()
-    book.update(positions)

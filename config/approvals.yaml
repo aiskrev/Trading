@@ -92,3 +92,34 @@ approvals:
       simulator file only (its other files are unchanged). Approved before commit; the approving commit is
       the one that adds this entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0006
+    date: 2026-10-22
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "I approve the durable idempotency store, client_order_id derivation, and the simulator and port changes for the BACKTEST stage, as APR-0006. Record the approval, update the docs and handoff, and commit."
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/execution/cost_model.py: de48995e9e698fc9bc77bb35c8a982fd15968a3271b9362ed9e76b24bfb93967
+      src/trading_agent/execution/simulated_broker.py: e3a383b203afbc0dae64fcbe03534cb77e3d46de2a1db11bab66495caea096bb
+      config/execution_assumptions.v1.yaml: 12a6e52852e4064ec1849bad0fc62293c2638b61836eaa778ea631149df74e59
+      src/trading_agent/execution/idempotency.py: f328c4eb66cb5bc8db3aaa62c12b4658fa81832ce9367ebe2a73da3a45644782
+      src/trading_agent/execution/ports.py: 6ca428037e5947670ccea8c2ef484f379d4f4b661d8e3b949b5a4ebb59e76697
+      src/trading_agent/execution/verifier.py: 15c09d5a16e5388561eb7203461d999a09ee9233c0b1b8638c7062654d6beef9
+      src/trading_agent/core/signing.py: f73df5c19a242d31178971273642db05bf31fb1bace5225d31406b05e4ae3dcb
+      src/trading_agent/risk/gateway.py: 7d5d4e257573fcdbe268efc8ca58f102674a920f6ae354842c725978306f4028
+    code_scope: >-
+      ADR 0003 migration step 2: IdempotencyStore (hash-chained, fsynced, torn-tail safe; in-memory option)
+      records every order_id as RESERVED before the simulator processes it and closes it after; a reused
+      order_id or client_order_id raises DuplicateOrder; a record that cannot be written means the order is
+      not sent. client_order_id = "ta1-" + first 40 hex of sha256(order_id, environment, account).
+      SimulatedBroker takes the store, keeps its own order book by client_order_id (lookup_order,
+      order_book, restore_orders) and gains restore_positions; ExecutionPort gains read-only lookup_order.
+      resolve_unresolved settles reserved-but-unclosed orders by broker lookup (found => RESOLVED; absent
+      and past expires_at + skew => ABANDONED, never resent; otherwise unresolved). Outside /execution the
+      live loop (orchestration/live_loop.py) opens a durable store in the run directory, persists the
+      broker's orders in broker_book.json, settles at restart and HALTs on UNRESOLVED_ORDER, a failed
+      lookup, or orders without a ledger; tick.py audits client_order_id. Tests:
+      tests/invariants/test_idempotency.py, tests/live/test_live_idempotency.py. Supersedes APR-0005 for
+      simulated_broker.py; APR-0005's other files are unchanged and re-listed here. Approved before commit;
+      the approving commit is the one that adds this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

@@ -1,4 +1,4 @@
-# Session handoff (state as of the APR-0005 commit, after 66d25f8)
+# Session handoff (state as of the APR-0006 commit, after 66d25f8)
 
 Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE.md and docs/roadmap.md first".
 
@@ -11,7 +11,8 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
 * Approvals live in `config/approvals.yaml`, append-only, bound to file SHA-256, BACKTEST only:
   APR-0001 risk-policy.v2 + restricted.v1 · APR-0002 simulator + execution-assumptions.v1 ·
   APR-0003 strategy mean-reversion-demo.v1 + trigger code · APR-0004 in-house vault ·
-  APR-0005 ApprovedOrder v2 (Ed25519) + OrderVerifier + simulator change (supersedes APR-0002 for the simulator). Editing an approved
+  APR-0005 ApprovedOrder v2 (Ed25519) + OrderVerifier + simulator change (supersedes APR-0002 for the simulator) ·
+  APR-0006 durable idempotency store + client_order_id + simulator/port changes (supersedes APR-0005 for the simulator). Editing an approved
   file voids its approval until a new entry is added.
 * Working pattern the owner expects: do the work, run tests, show results, **ask before committing**
   (commits auto-push to a **public** GitHub repo), ask for approvals with an explicit question. Never ask for
@@ -24,13 +25,13 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   public). Local git identity `aiskrev <aiskrev@abv.bg>`. Commit trailer: as given by the session's attribution reminder.
   A leftover duplicate at `C:\Users\aiskr\OneDrive\Documents\Projects\Trading` could not be deleted by Claude
   (permission denied): the owner should delete it.
-* Latest commits: (APR-0005) Ed25519 order signing · 66d25f8 vault · 0ea3fde ADRs/roadmap · d4fc753 evaluation gate · 6a52cfe PAPER readiness ·
+* Latest commits: (APR-0006) idempotency · 5ecb906 Ed25519 order signing · 66d25f8 vault · 0ea3fde ADRs/roadmap · d4fc753 evaluation gate · 6a52cfe PAPER readiness ·
   e943c77 dataset backtest · 7bb4c4f push-gate fix · a0a7fd4 planner eval · 41321c3 auto-push.
   Working tree clean; local == GitHub.
 * Environment: Windows, **Python 3.9 32-bit** only. Dependencies are in `.deps/` (git-ignored; reinstall with
   `py -m pip install --target .deps pydantic pyyaml pytest hypothesis import-linter tzdata "cryptography==48.0.1"`).
   Run anything with `PYTHONPATH="src;.deps"`. Tests: `PYTHONPATH="src;.deps" py -m pytest -p no:cacheprovider -o addopts="" -q`
-  (**457 pass**, ~45 s).
+  (**479 pass**, ~50 s).
 
 ## 3. Enforcement already in place
 
@@ -52,7 +53,8 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   book, instrument registry), account_data (read-only REST), normalization, features, planning (planner/critic over
   `LLMClient`, strict parser, scripted/recorded LLMs, **no real model client yet**), strategy (versioned definition +
   deterministic triggers), risk (gateway, 20+ rules, hash-pinned versioned policy, signs `ApprovedOrder` v2 with Ed25519
-  via the `Signer` port), execution (`OrderVerifier` with public keys only, refusals by reason code; `SimulatedBroker`:
+  via the `Signer` port), execution (`OrderVerifier` with public keys only, refusals by reason code; `IdempotencyStore`: order_id recorded
+  before send, `client_order_id` derivation, restart settlement by broker lookup; `SimulatedBroker`:
   latency, partial fills, fees, corporate-action book events), reconciliation, audit (hash-chained ledger,
   resumable chain, post-trade auditor), backtest (datasets with splits/delistings/calendar, gross/net, 2x-cost
   sensitivity), orchestration (pre-evaluation gate, live loop with DecisionPackets, session metrics, restart
@@ -91,10 +93,12 @@ was pasted into an earlier chat and enable 2FA** (it was exposed in conversation
 Manager, not a password).
 
 Engineering next steps (each needs tests + an approval entry where it touches /risk, /execution or credentials):
-1. ~~ADR 0003 migration step 1~~ **done (APR-0005)**: `ApprovedOrder` v2, `OrderVerifier`, HMAC removed.
-   Next is step 2: durable idempotency store and `client_order_id` derivation in the simulator (needs /execution
-   approval; editing `simulated_broker.py` voids APR-0005 for it).
-2. Add `SimulatedBroker.restore_positions` (live loop currently pokes `_positions`); needs /execution approval.
+1. ~~ADR 0003 step 1~~ **done (APR-0005)**: `ApprovedOrder` v2, `OrderVerifier`, HMAC removed.
+   ~~Step 2~~ **done (APR-0006)**: durable idempotency store, `client_order_id`, restart settlement (live loop
+   HALTs on `UNRESOLVED_ORDER`). Next is step 3: risk service as its own process behind a narrow
+   request/response schema with mTLS (also read approved policy hashes from approvals; needs the host decision).
+   Editing `simulated_broker.py`/`idempotency.py`/`ports.py` voids APR-0006 for them.
+2. ~~`SimulatedBroker.restore_positions`~~ done in APR-0006.
 3. Wire `VaultSecretsProvider` into adapters; hash-locked dependency file (new `cryptography` dep).
 4. Agent SDK `LLMClient` for Sonnet 5.5 (tools disabled), add `evaluation_time` to the planner payload, then run the
    planner eval on dev/validation (generate requests with `python -m evals.planner_quality.run export ...`).
