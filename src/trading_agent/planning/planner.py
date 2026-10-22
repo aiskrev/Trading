@@ -14,6 +14,7 @@ from trading_agent.planning.prompts import PromptSpec
 class PlanResult(NamedTuple):
     proposal: OrderProposal
     failure: Optional[str]  # None, LLM_UNAVAILABLE, SCHEMA_FAILURE, MODEL_FAILURE
+    raw_output: Optional[str] = None  # exact model text, kept for the DecisionPacket
 
 
 class ClaudePlanner:
@@ -45,6 +46,7 @@ class ClaudePlanner:
 
     def plan(self, market: MarketSnapshot, account: AccountSnapshot, features: FeatureSet) -> PlanResult:
         failure: Optional[str] = None
+        raw: Optional[str] = None
         try:
             raw = self.llm.complete(self.prompt.text, self.prompt.prompt_id, self.prompt.version,
                                     self.build_payload(market, account, features))
@@ -67,4 +69,4 @@ class ClaudePlanner:
             prompt_sha256=self.prompt.sha256,
             strategy_version=self.strategy_version,
         )
-        return PlanResult(proposal, failure)
+        return PlanResult(proposal, failure, raw if isinstance(raw, str) else None)

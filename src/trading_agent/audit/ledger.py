@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 from trading_agent.contracts.audit import AuditRecord
 from trading_agent.contracts.base import content_id
@@ -43,6 +43,32 @@ class AuditLedger:
                 raise AuditWriteFailure(str(exc)) from exc
         self._records.append(record)
         return record
+
+    @classmethod
+    def resume(cls, path: Union[str, Path]) -> "Tuple[AuditLedger, Optional[Path]]":
+        """Reopen an existing ledger after a restart and continue its hash chain.
+
+        A torn final line (crash mid-write) is moved to `<file>.torn` and reported. Because the
+        DECISION record is written before any submission, a torn record never hides an order.
+        Any other corruption raises: the run must not continue on an unverifiable ledger.
+        """
+        ledger = cls(path)
+        torn: Optional[Path] = None
+        if ledger.path is None or not ledger.path.exists():
+            return ledger, None
+        raw = ledger.path.read_bytes()
+        lines = raw.split(b"\n")
+        complete, tail = lines[:-1], lines[-1]
+        if tail.strip():
+            torn = ledger.path.with_suffix(ledger.path.suffix + ".torn")
+            with torn.open("ab") as fh:
+                fh.write(tail + b"\n")
+            ledger.path.write_bytes(b"".join(l + b"\n" for l in complete))
+        records = [AuditRecord.model_validate(json.loads(l)) for l in complete if l.strip()]
+        if not cls.verify(records):
+            raise AuditWriteFailure(f"{ledger.path}: hash chain broken; refusing to resume")
+        ledger._records = records
+        return ledger, torn
 
     @staticmethod
     def verify(records: List[AuditRecord]) -> bool:

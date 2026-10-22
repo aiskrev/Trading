@@ -188,6 +188,7 @@ class BacktestEngine:
 
     def _start_of_day(self, pipeline: TradingPipeline, day: date, t: datetime, latest) -> None:
         """Apply every action effective on or before `day` that has not been applied yet (point in time)."""
+        self.portfolio.start_session()  # daily loss / order-count / intraday drawdown limits reset per day
         while self._actions and self._actions[0].ex_date <= day:
             a = self._actions.pop(0)
             for key in [k for k in latest if k[1] == a.symbol]:

@@ -1,0 +1,5 @@
+# Operational fail-closed thresholds for the live run loop (PAPER once approved; tested in BACKTEST).
+version: ops-policy.v1
+max_feed_outage_seconds: 120          # no usable quotes for longer => REDUCE_ONLY for the session
+max_consecutive_model_errors: 3       # planner/critic unavailable or failing => REDUCE_ONLY
+restart_state_floor: REDUCE_ONLY      # a restart inside a session never resumes better than this

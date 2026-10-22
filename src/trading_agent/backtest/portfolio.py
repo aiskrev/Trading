@@ -16,6 +16,9 @@ class Portfolio:
         self.orders = 0
         self.equity_high_water = starting_cash
         self.dividends = Decimal(0)
+        self.last_equity = starting_cash
+        self._day_pnl_base = Decimal(0)
+        self._day_orders_base = 0
         self._qty: Dict[str, Decimal] = {}
         self._avg: Dict[str, Decimal] = {}
 
@@ -63,7 +66,14 @@ class Portfolio:
         if any(s not in market.quotes for s in self._qty):
             return
         equity = self.cash + sum((q * market.quotes[s].mid for s, q in self._qty.items()), Decimal(0))
+        self.last_equity = equity
         self.equity_high_water = max(self.equity_high_water, equity)
+
+    def start_session(self) -> None:
+        """New trading day: daily P&L, order count and the intraday high-water start fresh."""
+        self._day_pnl_base = self.realized_pnl
+        self._day_orders_base = self.orders
+        self.equity_high_water = self.last_equity
 
     def record_order(self) -> None:
         self.orders += 1
@@ -74,5 +84,6 @@ class Portfolio:
     def snapshot(self, as_of) -> AccountSnapshot:
         positions = {s: Position(symbol=s, quantity=q, avg_price=self._avg[s]) for s, q in sorted(self._qty.items())}
         return AccountSnapshot.build(as_of=as_of, cash=self.cash, positions=positions, open_orders=[],
-                                     realized_pnl_today=self.realized_pnl, orders_today=self.orders,
+                                     realized_pnl_today=self.realized_pnl - self._day_pnl_base,
+                                     orders_today=self.orders - self._day_orders_base,
                                      equity_high_water=self.equity_high_water)

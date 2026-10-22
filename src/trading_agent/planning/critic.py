@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from trading_agent.contracts.account import AccountSnapshot
 from trading_agent.contracts.critic import CriticBody, CriticVerdict, CriticVerdictKind
@@ -19,6 +19,7 @@ class ClaudeCritic:
     def __init__(self, llm: LLMClient, prompt: PromptSpec) -> None:
         self.llm = llm
         self.prompt = prompt
+        self.last_raw: Optional[str] = None  # exact model text of the latest review
 
     def review(self, proposal: OrderProposal, market: MarketSnapshot, account: AccountSnapshot,
                risk_policy_summary: Dict[str, Any]) -> CriticVerdict:
@@ -29,9 +30,11 @@ class ClaudeCritic:
             "risk_policy_summary": risk_policy_summary,
             "output_schema": CriticBody.model_json_schema(),
         }
+        self.last_raw = None
         try:
-            body = parse_strict(self.llm.complete(self.prompt.text, self.prompt.prompt_id,
-                                                  self.prompt.version, payload), CriticBody)
+            raw = self.llm.complete(self.prompt.text, self.prompt.prompt_id, self.prompt.version, payload)
+            self.last_raw = raw if isinstance(raw, str) else None
+            body = parse_strict(raw, CriticBody)
         except LLMUnavailable:
             body = CriticBody(verdict=CriticVerdictKind.DENY, reason_codes=["CRITIC_UNAVAILABLE"])
         except SchemaFailure:

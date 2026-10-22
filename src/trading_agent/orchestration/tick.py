@@ -5,6 +5,8 @@ Ordering guarantees:
   * nothing reaches execution except a gateway-minted ApprovedOrder;
   * every fault path is audited and escalates TradingState per fail_closed.py.
 """
+import time
+from contextlib import contextmanager
 from decimal import Decimal
 from typing import Any, Dict, List, NamedTuple, Optional
 
@@ -41,6 +43,29 @@ class Book(Protocol):
     def quantities(self) -> Dict[str, Decimal]: ...
 
 
+class Trace:
+    """Per-tick observability: stage timings, raw model text, account used, state before/after."""
+
+    def __init__(self, state_before: TradingState, data_issues: List[DataIssue]) -> None:
+        self.state_before = state_before
+        self.state_after = state_before
+        self.data_issues = data_issues
+        self.timings_ms: Dict[str, float] = {}
+        self.signal_to_proposal_ms: Optional[float] = None
+        self.account: Optional[AccountSnapshot] = None
+        self.planner_raw: Optional[str] = None
+        self.planner_failure: Optional[str] = None
+        self.critic_raw: Optional[str] = None
+
+    @contextmanager
+    def timed(self, stage: str):
+        t0 = time.perf_counter()
+        try:
+            yield
+        finally:
+            self.timings_ms[stage] = round((time.perf_counter() - t0) * 1000, 3)
+
+
 class TickResult(NamedTuple):
     proposal: Optional[OrderProposal] = None
     critic: Optional[CriticVerdict] = None
@@ -48,6 +73,7 @@ class TickResult(NamedTuple):
     order: Optional[ApprovedOrder] = None
     execution: Optional[ExecutionResult] = None
     skipped: Optional[str] = None
+    trace: Optional[Trace] = None
 
 
 class TradingPipeline:
@@ -70,6 +96,17 @@ class TradingPipeline:
 
     # ------------------------------------------------------------------ public
     def tick(self, market: MarketSnapshot, features: FeatureSet, data_issues: List[DataIssue] = ()) -> TickResult:
+        trace = Trace(state_before=self.state.state, data_issues=list(data_issues))
+        started = time.perf_counter()
+        try:
+            result = self._tick(market, features, data_issues, trace)
+        finally:
+            trace.timings_ms["total"] = round((time.perf_counter() - started) * 1000, 3)
+            trace.state_after = self.state.state
+        return result._replace(trace=trace)
+
+    def _tick(self, market: MarketSnapshot, features: FeatureSet, data_issues: List[DataIssue],
+              trace: "Trace") -> TickResult:
         now = self.clock.now()
         self.metrics.inc("ticks")
         if data_issues:
@@ -87,8 +124,11 @@ class TradingPipeline:
 
         self.book.mark(market)
         account = self.book.snapshot(now)
+        trace.account = account
         broker = BrokerAccountView(source_id="execution", as_of=now, positions=self.execution.broker_positions())
-        plan = self.planner.plan(market, account, features)
+        with trace.timed("planner"):
+            plan = self.planner.plan(market, account, features)
+        trace.planner_raw, trace.planner_failure = plan.raw_output, plan.failure
         proposal = plan.proposal
         if plan.failure:
             self.metrics.inc(f"planner_{plan.failure.lower()}")
@@ -98,9 +138,15 @@ class TradingPipeline:
 
         critic = None
         if proposal.decision is Decision.TRADE and self.critic is not None:
-            critic = self.critic.review(proposal, market, account, self.gateway.policy.summary())
-
-        result = self.gateway.evaluate(proposal, critic, market, account, self.state.state, features, broker)
+            with trace.timed("critic"):
+                critic = self.critic.review(proposal, market, account, self.gateway.policy.summary())
+            trace.critic_raw = self.critic.last_raw
+        with trace.timed("risk"):
+            result = self.gateway.evaluate(proposal, critic, market, account, self.state.state, features, broker)
+        # signal = newest quote in the snapshot; latency = its age when the proposal exists (+ model time)
+        signal_ts = max((q.ts for q in market.quotes.values()), default=market.as_of)
+        trace.signal_to_proposal_ms = round((self.clock.now() - signal_ts).total_seconds() * 1000
+                                            + trace.timings_ms.get("planner", 0.0), 3)
         self.metrics.inc(f"risk_{result.decision.verdict.value.lower()}")
         details = {"proposal_id": proposal.proposal_id}
         if proposal.symbol and proposal.symbol in market.quotes:
@@ -114,7 +160,8 @@ class TradingPipeline:
         if result.order is None:
             return TickResult(proposal, critic, result.decision)
 
-        execution = self._submit(result.order, market, proposal)
+        with trace.timed("execution"):
+            execution = self._submit(result.order, market, proposal)
         self._reconcile(market)
         return TickResult(proposal, critic, result.decision, result.order, execution)
 

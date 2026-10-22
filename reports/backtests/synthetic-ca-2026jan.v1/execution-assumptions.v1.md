@@ -43,7 +43,7 @@ Spreads are market data and are paid in full in both runs (buys at the ask, sell
 ## Integrity
 
 - trading state at end: NORMAL (costs x2: NORMAL)
-- audit ledger verified: True (head 0cf3abdeb861bcd2...)
+- audit ledger verified: True (head 48851ba8da675098...)
 - final positions: {'AAA': Decimal('0.000146')}
 - no future leakage: decisions use only data at or before their timestamp; corporate-action adjustments are applied on the ex-date; fills use quotes after the decision (+latency) and before the next decision (enforced: latency < bar spacing)
 

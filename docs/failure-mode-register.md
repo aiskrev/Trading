@@ -75,3 +75,17 @@ reaches a snapshot, so the gateway's NO_QUOTE / freshness rules deny any order t
 | F44 | Quotes outside the market calendar | `calendar_violations` | Refuse to run | `test_calendar_rules` |
 | F45 | Latency >= bar spacing (fill visible before it happened) | `BacktestEngine.run` | Refuse to run | `test_latency_must_be_below_bar_spacing` |
 | F46 | Placeholder dataset id | `run_dataset.main` | Exit 2 | `test_placeholder_dataset_id_is_refused` |
+
+### Live run loop (see docs/paper-trading-plan.md)
+
+| ID | Failure | Detection | Response | Test |
+|---|---|---|---|---|
+| F47 | Feed outage > ops max | no usable quotes in snapshot | REDUCE_ONLY | `test_feed_outage_goes_reduce_only` |
+| F48 | Consecutive model errors >= ops max | planner/critic failures | REDUCE_ONLY | `test_consecutive_model_errors_go_reduce_only` |
+| F49 | DecisionPacket write fails | ChainedLog.append | HALTED, loop stops | `test_packet_write_failure_halts` |
+| F50 | Clock goes backwards | live loop | HALTED | `test_clock_going_backwards_halts` |
+| F51 | Unexpected exception in a cycle | live loop | HALTED, recorded, loop stops | `test_unexpected_exception_halts_and_is_recorded` |
+| F52 | Restart inside a session | recovery | >= REDUCE_ONLY | `test_restart_in_session_restores_book_and_fails_closed` |
+| F53 | Torn ledger line / book vs broker mismatch at restart | ledger resume + reconcile | line set aside; mismatch => HALTED | `test_torn_execution_record_is_detected_and_halts` |
+| F54 | Corrupted ledger chain | ledger resume | refuse to start | `test_corrupted_ledger_refuses_to_start` |
+| F55 | HALT at end of session | recovery | stays HALTED until acknowledged | `test_halt_survives_into_the_next_session_until_acknowledged` |
