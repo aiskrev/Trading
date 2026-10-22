@@ -1,5 +1,7 @@
 # PAPER trading plan (proposed, not active)
 
+> **Superseded in part (proposed):** the vendor recommendation and ordering below predate ADR 0002. See [roadmap.md](roadmap.md) and [ADR 0002](adr/0002-target-architecture-and-promotion-path.md); this file stays as the record of the PAPER session design and drills.
+
 The system runs in **BACKTEST**. Nothing here changes the mode: per CLAUDE.md only the owner can,
 after approving the steps below. PAPER = live market data, simulated fills, **no execution
 credentials, ever**.
