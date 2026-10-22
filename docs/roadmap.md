@@ -41,10 +41,11 @@ owner; `tests/unit` check that mode semantics table in docs matches `core/mode.p
 **Status (APR-0007, BACKTEST): offline part done.** Built: `model_client` (tools-free request schema, pinned model,
 bounded retries, strict reply validation, metadata-only logs; acceptance tests 1, 2 and 5 against a fake SDK, the
 log part of 3 and the import-linter part of 3), `evaluation_time` in the planner payload, and the frozen eval set
-`planner-eval.v2`. **Open:** the real SDK transport (network allow-list in `test_no_network_code`, Agent SDK with no
-tools, a Python newer than the installed 3.9 to be checked, API key only from the vault), the key-from-`SecretsProvider`
-tests, and acceptance test 4 (scoring `trading_planner.v1` and the v2 candidate on development and validation needs
-real model outputs). See `docs/model-client.md`.
+`planner-eval.v2`. **Transport built, not yet run against the real API:** `AnthropicMessagesTransport` (Messages API,
+key only from a `SecretsProvider`, no tools, allow-listed in `test_no_network_code`) and `scripts/run_model_eval.py`
+(owner runs it in a terminal that holds the vault token; prints a cost ceiling and asks for YES). **Open:** the first real
+call (owner: key into the vault, Python >= 3.10, `pip install anthropic`), and acceptance test 4 (scoring
+`trading_planner.v1` and the v2 candidate on development and validation). See `docs/model-client.md`.
 
 Deliverables: `LLMClient` implementation over the Agent SDK for Sonnet 5.5, **tools disabled**,
 structured output, timeout and retry policy; recorded-response mode for replay; `evaluation_time` added

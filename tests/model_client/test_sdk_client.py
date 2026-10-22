@@ -74,7 +74,7 @@ def ask(c):
 
 # ------------------------------------------------------------------ 1. no tool is ever offered
 def test_request_has_no_field_through_which_a_tool_could_be_offered():
-    assert set(ModelRequest.model_fields) == {"model", "system", "user", "max_tokens", "timeout_s"}
+    assert set(ModelRequest.model_fields) == {"model", "system", "user", "max_tokens", "timeout_s", "effort"}
     for extra in ({"tools": []}, {"tool_choice": {"type": "auto"}}, {"mcp_servers": []}, {"allowed_tools": ["Bash"]}):
         with pytest.raises(ValidationError):
             ModelRequest(model=MODEL, system="s", user="u", max_tokens=10, timeout_s=1, **extra)
@@ -87,7 +87,8 @@ def test_every_request_sent_is_tools_free_and_carries_the_pinned_model():
     assert len(sdk.requests) == 2
     for r in sdk.requests:
         sent = r.model_dump()
-        assert set(sent) == {"model", "system", "user", "max_tokens", "timeout_s"}
+        assert set(sent) == {"model", "system", "user", "max_tokens", "timeout_s", "effort"}
+        assert sent["effort"] == "medium" and sent["max_tokens"] == 6000
         assert sent["model"] == MODEL and sent["system"] == SYSTEM
         assert not any("tool" in k for k in sent)
 
@@ -110,7 +111,8 @@ def test_aliases_are_refused():
 @pytest.mark.parametrize("blocks,stop,code", [
     ([ContentBlock(type="tool_use")], "tool_use", "NON_TEXT_BLOCK:tool_use"),
     ([ContentBlock(type="text", text=NO_TRADE), ContentBlock(type="tool_use")], "end_turn", "NON_TEXT_BLOCK:tool_use"),
-    ([ContentBlock(type="thinking", text="hmm")], "end_turn", "NON_TEXT_BLOCK:thinking"),
+    ([ContentBlock(type="thinking")], "end_turn", "EMPTY_REPLY"),                     # reasoning only, no answer
+    ([ContentBlock(type="redacted_thinking"), ContentBlock(type="tool_use")], "tool_use", "NON_TEXT_BLOCK:tool_use"),
     ([ContentBlock(type="server_tool_use")], "end_turn", "NON_TEXT_BLOCK:server_tool_use"),
     ([], "end_turn", "EMPTY_REPLY"),
     ([ContentBlock(type="text", text="{}"), ContentBlock(type="text", text="{}")], "end_turn", "MULTIPLE_BLOCKS"),
@@ -126,6 +128,17 @@ def test_anything_but_one_complete_text_block_is_a_schema_failure(blocks, stop, 
     with pytest.raises(SchemaFailure, match=code):
         ask(c)
     assert len(sdk.requests) == 1 and time.slept == []          # not retried: it would be paid for twice
+
+
+def test_reasoning_blocks_are_ignored_but_the_answer_is_still_exactly_one_text_block():
+    blocks = [ContentBlock(type="thinking"), ContentBlock(type="redacted_thinking"),
+              ContentBlock(type="text", text=NO_TRADE)]
+    c, _ = client(FakeSdk(ModelReply(model=MODEL, blocks=blocks, stop_reason="end_turn")))
+    assert ask(c) == NO_TRADE
+    two = blocks + [ContentBlock(type="text", text=NO_TRADE)]
+    c, _ = client(FakeSdk(ModelReply(model=MODEL, blocks=two, stop_reason="end_turn")))
+    with pytest.raises(SchemaFailure, match="MULTIPLE_BLOCKS"):
+        ask(c)
 
 
 def test_a_different_answering_model_is_refused():

@@ -2,6 +2,13 @@
 
 Status: **Proposed** (needs owner approval; nothing here changes the mode or any credential)
 
+> **Amendment (model transport, proposed by engineering, to be accepted with this ADR):** the model is reached
+> through the **Anthropic Messages API** (`anthropic` SDK), not the Claude Agent SDK. The planner is text in, JSON
+> out. The Agent SDK is Claude Code as a library with built-in Bash/Read/Write/WebFetch tools that would have to be
+> switched off; the Messages API is called without any `tools` argument and our request schema has no field for one,
+> so "no tools" is structural. Same model (`claude-sonnet-5-5`), same `LLMClient` port. Refusal fallbacks to another
+> model are **not** enabled: a refusal ends in NO_TRADE, and an unpinned answering model would break the audit trail.
+
 ## Context
 
 Today the system is a single process in BACKTEST: planner, critic, risk gateway, simulated broker

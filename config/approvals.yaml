@@ -148,3 +148,31 @@ approvals:
       tests/evals/test_planner_quality.py. Approved before commit; the approving commit is the one that adds
       this entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0008
+    date: 2026-10-22
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "Одобрявам транспорта към Anthropic Messages API, промените в клиента, разрешеното място за мрежов код и скрипта run_model_eval.py за BACKTEST, като APR-0008. Запиши одобрението, обнови handoff файла и направи commit."
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/model_client/anthropic_transport.py: 91bd30e2fad3c4eb2b7d856172230b79b6a93efe6e12dc3e75cb10e0f21e4afe
+      src/trading_agent/model_client/client.py: 69d4caa13ae2c833ad74f5fa9b33ab32f08f3cf4e923566717741a75d2438895
+      src/trading_agent/model_client/transport.py: 6a0b1ed4418c875258caa8958f296a2af5f2ac989ab9f3bf8e8763ce90602116
+      scripts/run_model_eval.py: 36df179ef271bd2406b0ea5c4d42d80fb650b7401be0f2fb559a1ee30c768d28
+      tests/architecture/test_no_network_code.py: 634e7580f97030a32a1d5c4b712ff3372c94d5be63f1f79d71a8a315ca5db763
+    code_scope: >-
+      Credentials-touching code (CLAUDE.md), BACKTEST stage. AnthropicMessagesTransport over the Anthropic Messages
+      API (the Agent SDK is not used; ADR 0002 amendment): the API key is read only through a SecretsProvider (the
+      vault), once, by logical name; SDK retries off; no base_url, tools, tool_choice, thinking override, sampling
+      parameters, betas or fallbacks; every SDK exception becomes a code-only TransportError. SdkLLMClient now
+      ignores thinking/redacted_thinking blocks (the model reasons by default) while any other non-text block, no or
+      several text blocks, truncation or refusal remain SchemaFailure; ModelRequest gains effort (default medium)
+      and max_tokens up to 16000 (default 6000). test_no_network_code allow-lists exactly one module
+      (model_client/anthropic_transport.py, import of anthropic). scripts/run_model_eval.py runs a prompt over the
+      frozen development/validation requests with the real model, only after the owner types YES against a printed
+      cost ceiling and with a vault token the owner supplies; it refuses the holdout and never edits an existing
+      recording. Does NOT approve: choosing a prompt version, any mode change, any live or paper use of the model, or
+      model-client changes beyond these files. Tests: tests/model_client/*, tests/architecture/test_no_network_code.py.
+      Supersedes APR-0007 for client.py and transport.py. Approved before commit; the approving commit is the one that
+      adds this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

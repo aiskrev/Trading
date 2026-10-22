@@ -15,6 +15,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+model = [
+    "anthropic>=1,<2",   # Messages API transport (needs Python >= 3.10); loaded only by model_client/anthropic_transport.py
+]
 dev = [
     "pytest>=8",
     "hypothesis>=6",

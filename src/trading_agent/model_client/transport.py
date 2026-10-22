@@ -7,7 +7,7 @@ setting that could be left on. A transport implementation must send exactly thes
 from typing import List, Optional
 
 from pydantic import Field
-from typing_extensions import Protocol
+from typing_extensions import Literal, Protocol
 
 from trading_agent.contracts.base import Contract
 from trading_agent.core.errors import TradingAgentError
@@ -17,8 +17,9 @@ class ModelRequest(Contract):
     model: str = Field(min_length=1)          # pinned model id, never an alias
     system: str
     user: str                                 # canonical JSON of the planner/critic payload
-    max_tokens: int = Field(gt=0, le=8000)
+    max_tokens: int = Field(gt=0, le=16000)   # thinking tokens count against it
     timeout_s: float = Field(gt=0, le=120)
+    effort: Literal["low", "medium", "high"] = "medium"   # thinking depth/cost; set explicitly, tuned by the eval
 
 
 class ContentBlock(Contract):
@@ -58,6 +59,10 @@ class TransportRateLimited(TransportError):
 
 class TransportServerError(TransportError):
     code, retryable = "SERVER_ERROR", True
+
+
+class TransportConnectionError(TransportError):
+    code, retryable = "CONNECTION_ERROR", True
 
 
 class TransportAuthError(TransportError):

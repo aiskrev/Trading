@@ -1,4 +1,4 @@
-# Session handoff (state as of the APR-0007 commit, after 66d25f8)
+# Session handoff (state as of the APR-0008 commit, after 66d25f8)
 
 Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE.md and docs/roadmap.md first".
 
@@ -13,7 +13,9 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   APR-0003 strategy mean-reversion-demo.v1 + trigger code · APR-0004 in-house vault ·
   APR-0005 ApprovedOrder v2 (Ed25519) + OrderVerifier + simulator change (supersedes APR-0002 for the simulator) ·
   APR-0006 durable idempotency store + client_order_id + simulator/port changes (supersedes APR-0005 for the simulator) ·
-  APR-0007 model client + `evaluation_time` in the planner payload + eval set planner-eval.v2 (offline only). Editing an approved
+  APR-0007 model client + `evaluation_time` in the planner payload + eval set planner-eval.v2 (offline only) ·
+  APR-0008 Anthropic Messages transport (key via SecretsProvider), thinking-block tolerance, one-module network allow-list,
+  `scripts/run_model_eval.py` (supersedes APR-0007 for client.py/transport.py). Editing an approved
   file voids its approval until a new entry is added.
 * Working pattern the owner expects: do the work, run tests, show results, **ask before committing**
   (commits auto-push to a **public** GitHub repo), ask for approvals with an explicit question. Never ask for
@@ -26,13 +28,13 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   public). Local git identity `aiskrev <aiskrev@abv.bg>`. Commit trailer: as given by the session's attribution reminder.
   A leftover duplicate at `C:\Users\aiskr\OneDrive\Documents\Projects\Trading` could not be deleted by Claude
   (permission denied): the owner should delete it.
-* Latest commits: (APR-0007) model client / eval v2 · a7957d5 idempotency · 5ecb906 Ed25519 order signing · 66d25f8 vault · 0ea3fde ADRs/roadmap · d4fc753 evaluation gate · 6a52cfe PAPER readiness ·
+* Latest commits: (APR-0008) Anthropic transport / eval script · 298d69a model client / eval v2 · a7957d5 idempotency · 5ecb906 Ed25519 order signing · 66d25f8 vault · 0ea3fde ADRs/roadmap · d4fc753 evaluation gate · 6a52cfe PAPER readiness ·
   e943c77 dataset backtest · 7bb4c4f push-gate fix · a0a7fd4 planner eval · 41321c3 auto-push.
   Working tree clean; local == GitHub.
 * Environment: Windows, **Python 3.9 32-bit** only. Dependencies are in `.deps/` (git-ignored; reinstall with
   `py -m pip install --target .deps pydantic pyyaml pytest hypothesis import-linter tzdata "cryptography==48.0.1"`).
   Run anything with `PYTHONPATH="src;.deps"`. Tests: `PYTHONPATH="src;.deps" py -m pytest -p no:cacheprovider -o addopts="" -q`
-  (**523 pass**, ~60 s).
+  (**555 pass**, ~75 s).
 
 ## 3. Enforcement already in place
 
@@ -53,7 +55,7 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
 * **Pipeline** (`src/trading_agent/`): market_data (streaming + CSV adapters, backoff/jitter, sequence gaps, quote
   book, instrument registry), account_data (read-only REST), normalization, features, planning (planner/critic over
   `LLMClient`, strict parser, scripted/recorded LLMs; payload carries `evaluation_time`), model_client
-  (`SdkLLMClient` over a tools-free `ModelTransport`, fake-SDK tested; **no real SDK transport yet**), strategy (versioned definition +
+  (`SdkLLMClient` over a tools-free `ModelTransport`, fake-SDK tested; `AnthropicMessagesTransport` on the Messages API, **not yet run against the real API**), strategy (versioned definition +
   deterministic triggers), risk (gateway, 20+ rules, hash-pinned versioned policy, signs `ApprovedOrder` v2 with Ed25519
   via the `Signer` port), execution (`OrderVerifier` with public keys only, refusals by reason code; `IdempotencyStore`: order_id recorded
   before send, `client_order_id` derivation, restart settlement by broker lookup; `SimulatedBroker`:
@@ -65,11 +67,11 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   freshness, reconciliation, mode + kill switch (`ops/KILL_SWITCH`), universe, deterministic trigger; any UNKNOWN =>
   NO_TRADE with `reason_code`, model not called.
 * **Vault** (`docs/vault.md`): AES-256-GCM/scrypt store, Ed25519 sign-only keys, per-client ACL, hash-chained access
-  log, rollback detection, CLI `scripts/vault.py` (refuses paths inside a git repo). **No real vault created yet.**
+  log, rollback detection, CLI `scripts/vault.py` (refuses paths inside a git repo). **The owner created the real vault in WSL Ubuntu** (`~/.trading-agent/`, Python 3.12 venv `~/venvs/trading`, repo clone `~/trading-agent`); the Anthropic key and a `model-client` grant are in it (token is the owner's, never in chat).
 * Datasets: only the synthetic `synthetic-ca-2026jan.v1` (symbols AAA, BBB). Universe/policy cover only AAA/BBB.
 * Planner eval (`docs/evals/`): frozen 255-scenario set `planner-eval.v2` (v1 + clock; v1 files kept), dev/validation/holdout (holdout sealed, never accessed),
   taxonomy graders calibrated with reference models. **`trading_planner.v1` has not been scored** (no model outputs
-  exist; repo can't call a model). Candidate `prompts/candidates/trading_planner.v2-candidate.md` is offline only.
+  exist yet; the transport and `scripts/run_model_eval.py` are built, the first real call has not been made). Candidate `prompts/candidates/trading_planner.v2-candidate.md` is offline only.
 * Docs: `architecture.md`, `threat-model.md` (T1-T29), `failure-mode-register.md` (F01-F62), `risk-gateway.md`,
   `backtesting.md`, `paper-trading-plan.md` (partly superseded), `roadmap.md` (P0-P9), ADR 0001-0003.
 
@@ -89,10 +91,10 @@ apply the proposed CLAUDE.md amendment ("no promotion into a mode that sends ord
 can precede PAPER); data vendor choice and licence; number of PAPER sessions (recommended 20, with drills); Alpaca Live
 vs IBKR (deferred); whether/when to approve PAPER.
 
-Owner-only actions: run `python scripts/vault.py init` in their own terminal; create vendor/broker accounts and put
-read-only/paper keys into the vault; change the mode; delete the OneDrive duplicate; **change the GitHub password that
-was pasted into an earlier chat and enable 2FA** (it was exposed in conversation; auth now uses Git Credential
-Manager, not a password).
+Owner-only actions: create vendor/broker accounts and put read-only/paper keys into the vault; change the mode; delete
+the OneDrive duplicate (sessions were again opened from it: open them from `D:\Projects\Trading	rading-agent`).
+Done by the owner: vault created; GitHub password changed and 2FA on. Never paste tokens/keys/passphrases in chat (a
+vault client token was pasted once and was revoked and re-issued).
 
 Engineering next steps (each needs tests + an approval entry where it touches /risk, /execution or credentials):
 1. ~~ADR 0003 step 1~~ **done (APR-0005)**: `ApprovedOrder` v2, `OrderVerifier`, HMAC removed.
@@ -102,9 +104,11 @@ Engineering next steps (each needs tests + an approval entry where it touches /r
    Editing `simulated_broker.py`/`idempotency.py`/`ports.py` voids APR-0006 for them.
 2. ~~`SimulatedBroker.restore_positions`~~ done in APR-0006.
 3. Wire `VaultSecretsProvider` into adapters; hash-locked dependency file (new `cryptography` dep).
-4. ~~Model client offline part, `evaluation_time`, eval set v2~~ **done (APR-0007)**. Left: the real SDK transport
-   (needs the owner's vault + API key in it, a narrow network allow-list in `test_no_network_code`, a Python newer
-   than the installed 3.9 to be checked), then score `trading_planner.v1` and the v2 candidate on dev/validation
-   (`python -m evals.planner_quality.run export <label> --split development`; outputs must come from a real model).
+4. ~~Model client, `evaluation_time`, eval set v2, real transport~~ **built (APR-0007/0008)**. Left: the owner's first real
+   call (`git pull`, `pip install "anthropic>=1,<2"`, `export TRADING_VAULT_TOKEN=...`, then
+   `python scripts/run_model_eval.py trading_planner.v1 --split development --limit 3`), then `--all` for
+   `trading_planner.v1` and `trading_planner.v2-candidate` on development and validation; choose a prompt from those
+   results (holdout once, last, per `docs/evals/planner-evaluation.md`); the choice needs an approval. Also tune
+   `effort`/`max_tokens` from latency and cost, and hash-lock the `anthropic` dependency before PAPER.
 5. Real dataset in the `data/datasets/` format + new risk policy version/approval for real symbols.
 6. Risk service as a separate process (mTLS), then durable store/OTel/failover per `docs/roadmap.md`.

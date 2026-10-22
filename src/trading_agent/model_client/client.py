@@ -2,8 +2,10 @@
 
 Failure mapping (planner/critic already turn these into NO_TRADE / DENY):
   timeout, rate limit, 5xx (after bounded retries), auth, bad request  -> LLMUnavailable
-  a reply that is not exactly one complete text block (tool use, thinking, several blocks, empty, truncated
-  by max_tokens, refusal)                                               -> SchemaFailure
+  a reply that is not exactly one complete text block (any tool-use block, several text blocks, empty,
+  truncated by max_tokens, refusal)                                     -> SchemaFailure
+  `thinking` / `redacted_thinking` blocks are ignored (the model reasons by default; they carry no action and are
+  never stored); everything else that is not text is refused.
   the answering model differs from the pinned one                       -> ModelVersionMismatch (MODEL_FAILURE)
 
 The reply text is returned byte for byte, so recording and replaying it is exact. Logs carry only metadata
@@ -21,6 +23,7 @@ from trading_agent.observability.logging import get_logger
 
 log = get_logger("trading_agent.model_client")
 COMPLETE_STOP_REASONS = frozenset({"end_turn", "stop_sequence"})
+IGNORED_BLOCK_TYPES = frozenset({"thinking", "redacted_thinking"})
 
 
 class ModelVersionMismatch(TradingAgentError):
@@ -37,7 +40,7 @@ class RetryPolicy(NamedTuple):
 
 
 class SdkLLMClient:
-    def __init__(self, transport: ModelTransport, model_id: str, max_tokens: int = 2000,
+    def __init__(self, transport: ModelTransport, model_id: str, max_tokens: int = 6000, effort: str = "medium",
                  retry: RetryPolicy = RetryPolicy(), sleep: Callable[[float], None] = time.sleep,
                  monotonic: Callable[[], float] = time.monotonic,
                  jitter: Callable[[], float] = random.random) -> None:
@@ -46,6 +49,7 @@ class SdkLLMClient:
         self._transport = transport
         self.model_version = model_id
         self._max_tokens = max_tokens
+        self._effort = effort
         self._retry = retry
         self._sleep, self._monotonic, self._jitter = sleep, monotonic, jitter
 
@@ -58,7 +62,7 @@ class SdkLLMClient:
                 self._note(prompt_id, prompt_version, attempt, "DEADLINE", started)
                 raise LLMUnavailable("DEADLINE")
             request = ModelRequest(model=self.model_version, system=system_prompt, user=user,
-                                   max_tokens=self._max_tokens,
+                                   max_tokens=self._max_tokens, effort=self._effort,
                                    timeout_s=min(self._retry.attempt_timeout_s, remaining))
             try:
                 reply = self._transport.send(request)
@@ -83,16 +87,17 @@ class SdkLLMClient:
     def _text_of(self, reply: ModelReply) -> str:
         if reply.model != self.model_version:
             raise ModelVersionMismatch(f"asked {self.model_version}, answered by {reply.model}")
-        if not reply.blocks:
-            raise SchemaFailure("EMPTY_REPLY")
         for block in reply.blocks:
-            if block.type != "text":           # tool_use, thinking, server tools, anything else
+            if block.type != "text" and block.type not in IGNORED_BLOCK_TYPES:   # tool_use, server tools, ...
                 raise SchemaFailure(f"NON_TEXT_BLOCK:{block.type}")
-        if len(reply.blocks) != 1:
+        texts = [b for b in reply.blocks if b.type == "text"]
+        if not texts:
+            raise SchemaFailure("EMPTY_REPLY")
+        if len(texts) != 1:
             raise SchemaFailure("MULTIPLE_BLOCKS")
         if reply.stop_reason not in COMPLETE_STOP_REASONS:
             raise SchemaFailure(f"INCOMPLETE_REPLY:{reply.stop_reason}")
-        text = reply.blocks[0].text
+        text = texts[0].text
         if not text or not text.strip():
             raise SchemaFailure("EMPTY_TEXT")
         return text
