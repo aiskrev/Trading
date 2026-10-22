@@ -5,11 +5,11 @@ from typing import Callable, Dict, Optional, Set
 from trading_agent.contracts.execution import AckStatus, ApprovedOrder, BrokerAck, Fill
 from trading_agent.contracts.market import Quote
 from trading_agent.core.clock import Clock
-from trading_agent.core.errors import DuplicateOrder, ForgedOrder
-from trading_agent.core.signing import OrderSigner
+from trading_agent.core.errors import DuplicateOrder
 from trading_agent.core.types import IdFactory, Side
 from trading_agent.execution.cost_model import CostModel
 from trading_agent.execution.ports import ExecutionResult
+from trading_agent.execution.verifier import OrderVerifier
 
 QTY = Decimal("0.000001")
 
@@ -24,11 +24,13 @@ class SimulatedBroker:
     * `faults` lets fault-injection tests make it reject, partially fill, or fill silently.
     """
 
-    def __init__(self, signer: OrderSigner, cost_model: CostModel, quote_for: Callable[[str], Optional[Quote]],
+    def __init__(self, verifier: OrderVerifier, cost_model: CostModel, quote_for: Callable[[str], Optional[Quote]],
                  clock: Clock, ids: IdFactory, latency_ms: int = 0,
                  fill_quote_after: Optional[Callable[[str, object], Optional[Quote]]] = None,
                  partial_fills: bool = False, max_participation: Decimal = Decimal(1)) -> None:
-        self._signer = signer
+        if not isinstance(verifier, OrderVerifier):
+            raise TypeError("SimulatedBroker needs an OrderVerifier (public keys only)")
+        self._verifier = verifier
         self._cost = cost_model
         self._quote_for = quote_for
         self._clock = clock
@@ -42,8 +44,7 @@ class SimulatedBroker:
         self.faults = {"reject_next": 0, "partial_fill_ratio": None, "silent_fill_next": 0}
 
     def submit(self, order: ApprovedOrder) -> ExecutionResult:
-        if not isinstance(order, ApprovedOrder) or not self._signer.verify(order.signing_payload(), order.signature):
-            raise ForgedOrder(f"order {getattr(order, 'order_id', '?')} failed signature verification")
+        self._verifier.verify(order)  # raises OrderRefused (a ForgedOrder) on any failed check
         if order.order_id in self._seen:
             raise DuplicateOrder(order.order_id)
         self._seen.add(order.order_id)

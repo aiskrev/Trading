@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from trading_agent.core.errors import SecretUnavailable
-from trading_agent.core.signing import OrderSigner
+from trading_agent.core.signing import EphemeralSigner
 from trading_agent.observability.logging import REDACTED, get_logger, redact
 from trading_agent.secret_store.unavailable import UnavailableSecretsProvider
 
@@ -82,8 +82,11 @@ def test_secrets_provider_is_unavailable_at_this_stage():
 
 
 def test_signer_key_cannot_be_exported():
-    signer = OrderSigner()
+    signer = EphemeralSigner()
     assert "ephemeral" in repr(signer)
     with pytest.raises(TypeError):
         pickle.dumps(signer)
-    assert not any("key" in name.lower() for name in vars(signer) if not name.startswith("_OrderSigner"))
+    # the private key is name-mangled; the only other attribute is the public key_id
+    assert {n for n in vars(signer) if not n.startswith("_EphemeralSigner")} == {"key_id"}
+    assert [n for n in dir(signer) if not n.startswith("_")] == ["key_id", "public_key", "sign", "trusted_key"]
+    assert len(signer.public_key()) == 32

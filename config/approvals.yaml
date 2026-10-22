@@ -69,3 +69,26 @@ approvals:
       Known limits recorded in ADR 0003 / docs/vault.md (not an HSM; single-host; passphrase is a single
       point of failure). Approval is for BACKTEST only: PAPER and above need a new entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0005
+    date: 2026-10-22
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "I approve ApprovedOrder v2 (Ed25519), OrderVerifier and the simulator change for the BACKTEST stage, as APR-0005. Record the approval and commit."
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/execution/cost_model.py: de48995e9e698fc9bc77bb35c8a982fd15968a3271b9362ed9e76b24bfb93967
+      src/trading_agent/execution/simulated_broker.py: 2e09c921fcee10f036b2a1152ac2a896b251124aee781229d6c9d0b02f4e598a
+      config/execution_assumptions.v1.yaml: 12a6e52852e4064ec1849bad0fc62293c2638b61836eaa778ea631149df74e59
+      src/trading_agent/execution/verifier.py: 15c09d5a16e5388561eb7203461d999a09ee9233c0b1b8638c7062654d6beef9
+      src/trading_agent/core/signing.py: f73df5c19a242d31178971273642db05bf31fb1bace5225d31406b05e4ae3dcb
+      src/trading_agent/risk/gateway.py: 7d5d4e257573fcdbe268efc8ca58f102674a920f6ae354842c725978306f4028
+    code_scope: >-
+      ADR 0003 migration step 1: ApprovedOrder v2 signed with Ed25519 through the Signer port
+      (EphemeralSigner in-process), bound to environment, broker account alias, leader epoch, policy
+      version and sha256, market/account snapshot ids, key_id and a 5 s lifetime (hard max 10 s, skew 1 s).
+      OrderVerifier holds public keys only (TrustedKey) and refuses with a reason code (verification checks
+      1-5 and 7); SimulatedBroker takes an OrderVerifier instead of the HMAC signer; a refusal halts the
+      pipeline and is audited. Tests: tests/invariants/test_order_signing.py. Supersedes APR-0002 for the
+      simulator file only (its other files are unchanged). Approved before commit; the approving commit is
+      the one that adds this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

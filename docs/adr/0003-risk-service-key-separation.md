@@ -139,7 +139,13 @@ permission), is set only by a human, and an unreadable state means "active".
 ## Migration steps (each is its own approved change)
 
 1. Introduce `ApprovedOrder` v2 and `OrderVerifier` (public-key only) in-process, with Ed25519 and an
-   ephemeral key; keep the current tests green. Replace HMAC.
+   ephemeral key; keep the current tests green. Replace HMAC. **Implemented** (`core/signing.py`,
+   `execution/verifier.py`, `tests/invariants/test_order_signing.py`): verification checks 1-5 and 7;
+   acceptance tests 1, 2, 3 and 5. Check 6 is still the simulator's in-memory `order_id` set (step 2);
+   check 8 is step 5. In-process the verifier trusts the loaded policy's hash (its approval is checked
+   at startup); reading the hash list from `config/approvals.yaml` belongs with the process split
+   (step 3). Known limit: a raw 32-byte private seed is indistinguishable from a public key by length,
+   so `TrustedKey` rejects signers, key objects and 64-byte encodings, not a mislabelled seed.
 2. Add the idempotency store and `client_order_id` derivation to the simulator, still in-process.
 3. Split the risk service into its own process behind a narrow request/response schema; mTLS.
 4. Move the signing key to the secrets manager / KMS (owner action: provide it; never in chat).

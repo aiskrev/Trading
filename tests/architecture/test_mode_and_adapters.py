@@ -9,18 +9,19 @@ from pydantic import ValidationError
 from trading_agent.core.clock import SimulatedClock
 from trading_agent.core.errors import AdapterNotPermitted, ConfigError, ModeNotPermitted
 from trading_agent.core.mode import PERMITTED_MODES_THIS_STAGE, Mode, RuntimeConfig, load_runtime_config
-from trading_agent.core.signing import OrderSigner
+from trading_agent.core.signing import EphemeralSigner
 from trading_agent.core.types import IdFactory
 from trading_agent.execution import registry
 from trading_agent.execution.cost_model import CostModel
 from trading_agent.execution.ports import ExecutionPort
 from trading_agent.execution.simulated_broker import SimulatedBroker
-from trading_agent.testing.harness import ROOT, T0
+from trading_agent.testing.harness import ROOT, T0, verifier_for
 
 
 def _deps():
-    return dict(signer=OrderSigner(), cost_model=CostModel(), quote_for=lambda s: None,
-                clock=SimulatedClock(T0), ids=IdFactory("t"))
+    clock = SimulatedClock(T0)
+    return dict(verifier=verifier_for(EphemeralSigner(), clock), cost_model=CostModel(), quote_for=lambda s: None,
+                clock=clock, ids=IdFactory("t"))
 
 
 def test_only_backtest_is_permitted_this_stage():

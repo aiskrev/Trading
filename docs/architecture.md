@@ -21,7 +21,7 @@ secondary source (optional)    ─┴─> Normalizer ──> MarketSnapshot (fro
                                         v
                 AuditLedger.append(DECISION)   <── write-ahead; failure => HALTED, no submit
                                         v
-                ExecutionPort.submit(ApprovedOrder)  (BACKTEST: SimulatedBroker, verifies HMAC)
+                ExecutionPort.submit(ApprovedOrder)  (BACKTEST: SimulatedBroker; OrderVerifier checks Ed25519 + bindings)
                                         v
                 AuditLedger.append(EXECUTION) ──> Reconciler (internal vs broker) ── mismatch => HALTED
                                         v
@@ -73,9 +73,11 @@ HttpTransport (GET only, mock only) -> ReadOnlyHttpClient (allow-list, TokenBuck
 
 * **Mode ≠ TradingState.** `Mode` is deployment config, frozen, with no setter. Fail-closed
   behaviour uses a separate `TradingState` (NORMAL → REDUCE_ONLY → HALTED, escalate-only).
-* **Capability-signed orders.** The gateway signs `ApprovedOrder` with an HMAC key generated
-  in-process at startup (never persisted, not picklable). Execution rejects anything else.
-  The planner cannot import the signer.
+* **Capability-signed orders (ADR 0003).** The gateway signs `ApprovedOrder` v2 with Ed25519 through
+  the `Signer` port (in-process: `EphemeralSigner`, generated at startup, never persisted, not
+  picklable; later the vault/KMS). The order is bound to environment, broker account, leader epoch,
+  policy hash, snapshots and a 5 s lifetime. Execution holds public keys only (`OrderVerifier`) and
+  refuses anything else with a reason code; the pipeline halts. The planner cannot import the signer.
 * **The model never writes attribution.** The LLM returns `ProposalBody`; code wraps it into
   `OrderProposal` with ids, snapshot ids, model/prompt/strategy versions.
 * **Evidence refs are checked, not trusted.** Every ref must resolve to something in the

@@ -232,7 +232,7 @@ def test_report_has_gross_net_sensitivity_and_no_recommendation(runs):
 
 
 def test_simulator_and_assumptions_require_approval(tmp_path):
-    assert rd.require_execution_approval(ROOT / "config" / "execution_assumptions.v1.yaml") == "APR-0002"
+    assert rd.require_execution_approval(ROOT / "config" / "execution_assumptions.v1.yaml") == "APR-0005"
     for mode in ("PAPER", "FULL_CONFIGURED_LIVE"):
         from trading_agent.core.mode import Mode
         with pytest.raises(ConfigError, match="no approval"):

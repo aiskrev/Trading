@@ -199,7 +199,9 @@ class TradingPipeline:
         try:
             execution = self.execution.submit(order)
         except (ForgedOrder, DuplicateOrder) as exc:
-            self._trip(TradingState.HALTED, f"{type(exc).__name__}", market)
+            reason = getattr(exc, "reason_code", None)
+            self._trip(TradingState.HALTED, f"{type(exc).__name__}:{reason}" if reason else type(exc).__name__,
+                       market)
             return None
         except Exception as exc:  # unknown broker state => no new risk
             self._trip(TradingState.HALTED, f"BROKER_ERROR:{type(exc).__name__}", market)

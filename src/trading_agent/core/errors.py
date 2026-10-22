@@ -22,6 +22,15 @@ class ForgedOrder(TradingAgentError):
     """An order reached execution without a valid gateway signature."""
 
 
+class OrderRefused(ForgedOrder):
+    """The execution side refused a signed order (ADR 0003 verification); `reason_code` says why."""
+
+    def __init__(self, reason_code: str, order_id: str = "?") -> None:
+        super().__init__(f"order {order_id} refused: {reason_code}")
+        self.reason_code = reason_code
+        self.order_id = order_id
+
+
 class DuplicateOrder(TradingAgentError):
     pass
 

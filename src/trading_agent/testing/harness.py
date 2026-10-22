@@ -9,12 +9,13 @@ from trading_agent.audit.ledger import AuditLedger
 from trading_agent.backtest.portfolio import Portfolio
 from trading_agent.contracts.market import InstrumentStatus, MarketSnapshot, NewsItem, Quote, VenueStatus
 from trading_agent.core.clock import SimulatedClock
-from trading_agent.core.mode import RuntimeConfig, load_runtime_config
-from trading_agent.core.signing import OrderSigner
+from trading_agent.core.mode import Mode, RuntimeConfig, load_runtime_config
+from trading_agent.core.signing import BACKTEST_ACCOUNT_ALIAS, EphemeralSigner
 from trading_agent.core.trading_state import TradingStateMachine
 from trading_agent.core.types import IdFactory
 from trading_agent.execution.cost_model import CostModel
 from trading_agent.execution.registry import create_execution_port
+from trading_agent.execution.verifier import OrderVerifier
 from trading_agent.features.pipeline import FeaturePipeline
 from trading_agent.normalization.validators import DataIssue
 from trading_agent.orchestration.tick import TickResult, TradingPipeline
@@ -46,6 +47,12 @@ def risk_policy(**overrides) -> RiskPolicy:
     """The released policy, or (tests only) a variant with overrides."""
     base = _base_policy()
     return RiskPolicy.model_validate({**base.model_dump(), **overrides}) if overrides else base
+
+
+def verifier_for(signer: EphemeralSigner, clock, policy: Optional[RiskPolicy] = None) -> OrderVerifier:
+    """The BACKTEST execution-side verifier trusting `signer`'s public key and `policy`'s hash."""
+    return OrderVerifier([signer.trusted_key()], Mode.BACKTEST, BACKTEST_ACCOUNT_ALIAS,
+                         {(policy or risk_policy()).source_sha256}, clock)
 
 
 def quote(mid: str, half_spread: str = "0.01", ts: datetime = T0) -> Quote:
@@ -91,14 +98,15 @@ class Harness:
         self.policy = policy or risk_policy()
         self.clock = SimulatedClock(start)
         self.ids = IdFactory(run_id)
-        self.signer = OrderSigner()
+        self.signer = EphemeralSigner()
+        self.verifier = verifier_for(self.signer, self.clock, self.policy)
         self.ledger = AuditLedger()
         self.state = TradingStateMachine()
         self.portfolio = Portfolio(starting_cash)
         self.features = FeaturePipeline()
         self.current: Optional[MarketSnapshot] = None
         self.gateway = RiskGateway(self.policy, self.config.mode, self.signer, self.ids, self.clock)
-        self.broker = create_execution_port(self.config.mode, signer=self.signer, cost_model=CostModel(),
+        self.broker = create_execution_port(self.config.mode, verifier=self.verifier, cost_model=CostModel(),
                                             quote_for=lambda s: self.current.quotes.get(s) if self.current else None,
                                             clock=self.clock, ids=self.ids)
         planner = ClaudePlanner(ScriptedLLM(planner_fn, "scripted-planner"),

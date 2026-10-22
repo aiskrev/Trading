@@ -37,11 +37,12 @@ from trading_agent.contracts.proposal import Decision
 from trading_agent.core.clock import Clock
 from trading_agent.core.errors import AuditWriteFailure, ConfigError
 from trading_agent.core.mode import RuntimeConfig, assert_mode_permitted
-from trading_agent.core.signing import OrderSigner
+from trading_agent.core.signing import BACKTEST_ACCOUNT_ALIAS, EphemeralSigner
 from trading_agent.core.trading_state import TradingState, TradingStateMachine
 from trading_agent.core.types import IdFactory
 from trading_agent.execution.cost_model import CostModel
 from trading_agent.execution.registry import create_execution_port
+from trading_agent.execution.verifier import OrderVerifier
 from trading_agent.features.pipeline import FeaturePipeline
 from trading_agent.market_data.streaming import StreamingQuoteAdapter
 from trading_agent.normalization.normalizer import Normalizer
@@ -111,9 +112,11 @@ class LiveLoopRunner:
         self.normalizer = Normalizer(primary, secondary)
         self._current: Optional[MarketSnapshot] = None
 
-        signer = OrderSigner()
+        signer = EphemeralSigner()  # a restart issues a new key; orders signed before it no longer verify
+        verifier = OrderVerifier([signer.trusted_key()], config.mode, BACKTEST_ACCOUNT_ALIAS,
+                                 {policy.source_sha256}, clock)
         self.gateway = RiskGateway(policy, config.mode, signer, self.ids, clock)
-        self.broker = create_execution_port(config.mode, signer=signer, cost_model=cost_model or CostModel(),
+        self.broker = create_execution_port(config.mode, verifier=verifier, cost_model=cost_model or CostModel(),
                                             quote_for=lambda s: self._current.quotes.get(s) if self._current else None,
                                             clock=clock, ids=self.ids, partial_fills=True)
         planner = ClaudePlanner(planner_llm, load_prompt(prompts_dir, "trading_planner",

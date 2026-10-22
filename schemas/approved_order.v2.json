@@ -1,0 +1,159 @@
+{
+  "$defs": {
+    "Mode": {
+      "enum": [
+        "BACKTEST",
+        "REPLAY",
+        "PAPER",
+        "SHADOW",
+        "CANARY_LIVE",
+        "LIMITED_LIVE",
+        "FULL_CONFIGURED_LIVE"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "Side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ],
+      "title": "Side",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The only input execution accepts (v2, ADR 0003). A valid signature can only come from the risk side.\n\nThe Ed25519 signature covers every field except `signature`, so the order is bound to one\nenvironment, one broker account, one leader epoch, one approved policy and a short time window.",
+  "properties": {
+    "account_snapshot_id": {
+      "title": "Account Snapshot Id",
+      "type": "string"
+    },
+    "alg": {
+      "const": "Ed25519",
+      "default": "Ed25519",
+      "title": "Alg",
+      "type": "string"
+    },
+    "broker_account_alias": {
+      "minLength": 1,
+      "title": "Broker Account Alias",
+      "type": "string"
+    },
+    "decision_id": {
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "environment": {
+      "$ref": "#/$defs/Mode"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "key_id": {
+      "minLength": 1,
+      "title": "Key Id",
+      "type": "string"
+    },
+    "leader_epoch": {
+      "minimum": 0,
+      "title": "Leader Epoch",
+      "type": "integer"
+    },
+    "limit_price": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Limit Price"
+    },
+    "market_snapshot_id": {
+      "title": "Market Snapshot Id",
+      "type": "string"
+    },
+    "notional": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Notional"
+    },
+    "order_id": {
+      "minLength": 1,
+      "title": "Order Id",
+      "type": "string"
+    },
+    "order_version": {
+      "const": 2,
+      "default": 2,
+      "title": "Order Version",
+      "type": "integer"
+    },
+    "policy_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Sha256",
+      "type": "string"
+    },
+    "policy_version": {
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "proposal_id": {
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "side": {
+      "$ref": "#/$defs/Side"
+    },
+    "signature": {
+      "title": "Signature",
+      "type": "string"
+    },
+    "symbol": {
+      "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+      "title": "Symbol",
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_id",
+    "decision_id",
+    "proposal_id",
+    "symbol",
+    "side",
+    "limit_price",
+    "notional",
+    "issued_at",
+    "expires_at",
+    "environment",
+    "broker_account_alias",
+    "leader_epoch",
+    "policy_version",
+    "policy_sha256",
+    "market_snapshot_id",
+    "account_snapshot_id",
+    "key_id",
+    "signature"
+  ],
+  "title": "ApprovedOrder",
+  "type": "object"
+}

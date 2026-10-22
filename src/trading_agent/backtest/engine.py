@@ -17,11 +17,12 @@ from trading_agent.contracts.market import InstrumentStatus, MarketSnapshot, New
 from trading_agent.core.clock import SimulatedClock
 from trading_agent.core.errors import ConfigError
 from trading_agent.core.mode import Mode, RuntimeConfig, assert_mode_permitted
-from trading_agent.core.signing import OrderSigner
+from trading_agent.core.signing import BACKTEST_ACCOUNT_ALIAS, EphemeralSigner
 from trading_agent.core.trading_state import TradingState, TradingStateMachine
 from trading_agent.core.types import IdFactory
 from trading_agent.execution.cost_model import CostModel, ExecutionAssumptions
 from trading_agent.execution.registry import create_execution_port
+from trading_agent.execution.verifier import OrderVerifier
 from trading_agent.features.pipeline import FeaturePipeline
 from trading_agent.market_data.ports import MarketDataSource, RawTick
 from trading_agent.normalization.normalizer import Normalizer
@@ -143,7 +144,9 @@ class BacktestEngine:
     # ------------------------------------------------------------------ wiring
     def _build_pipeline(self, start: datetime) -> TradingPipeline:
         self.clock = SimulatedClock(start)
-        signer = OrderSigner()  # shared only by gateway (sign) and execution port (verify)
+        signer = EphemeralSigner()  # private half: gateway only; the execution port gets the public key
+        verifier = OrderVerifier([signer.trusted_key()], self.config.mode, BACKTEST_ACCOUNT_ALIAS,
+                                 {self.policy.source_sha256}, self.clock)
         planner_llm, critic_llm = self._llms
         planner = ClaudePlanner(planner_llm, load_prompt(self._prompts_dir, "trading_planner",
                                                          self.config.prompt_versions["trading_planner"]),
@@ -159,7 +162,7 @@ class BacktestEngine:
             extra = dict(latency_ms=self.execution.latency_ms, fill_quote_after=self._quote_after,
                          partial_fills=self.execution.partial_fills,
                          max_participation=self.execution.max_participation)
-        broker = create_execution_port(self.config.mode, signer=signer, cost_model=self._cost,
+        broker = create_execution_port(self.config.mode, verifier=verifier, cost_model=self._cost,
                                        quote_for=lambda s: self._current.quotes.get(s) if self._current else None,
                                        clock=self.clock, ids=self.ids, **extra)
         self.broker = broker

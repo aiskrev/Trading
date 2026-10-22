@@ -16,14 +16,14 @@ from trading_agent.contracts.risk import RiskVerdict
 from trading_agent.core.clock import SimulatedClock
 from trading_agent.core.errors import DuplicateOrder, ForgedOrder
 from trading_agent.core.mode import Mode
-from trading_agent.core.signing import OrderSigner
+from trading_agent.core.signing import EphemeralSigner
 from trading_agent.core.trading_state import TradingState
 from trading_agent.core.types import IdFactory, Side
 from trading_agent.execution.cost_model import CostModel
 from trading_agent.execution.simulated_broker import SimulatedBroker
 from trading_agent.risk.gateway import RiskGateway
 from trading_agent.risk.rules import CAPS, GATE_RULES
-from trading_agent.testing.harness import T0, market, quote, risk_policy
+from trading_agent.testing.harness import T0, market, quote, risk_policy, verifier_for
 
 POLICY = risk_policy()
 SETTINGS = settings(max_examples=400, deadline=None, suppress_health_check=[HealthCheck.too_slow])
@@ -32,7 +32,8 @@ D = Decimal
 
 # ------------------------------------------------------------------ builders
 def gateway(policy=POLICY, signer=None, clock=None, **kw):
-    return RiskGateway(policy, Mode.BACKTEST, signer or OrderSigner(), IdFactory("inv"), clock or SimulatedClock(T0), **kw)
+    return RiskGateway(policy, Mode.BACKTEST, signer or EphemeralSigner(), IdFactory("inv"),
+                       clock or SimulatedClock(T0), **kw)
 
 
 def account(held=D(0), bbb=D(0), cash=D(100000), pnl=D(0), orders=0, open_orders=(), hw="auto", as_of=T0, extra=None):
@@ -404,8 +405,9 @@ def test_snapshot_and_critic_mismatch_denied():
 
 # ------------------------------------------------------------------ AT-12
 def _sim(signer):
-    m = market()
-    return SimulatedBroker(signer, CostModel(), lambda s: m.quotes.get(s), SimulatedClock(T0), IdFactory("b"))
+    m, clock = market(), SimulatedClock(T0)
+    return SimulatedBroker(verifier_for(signer, clock), CostModel(), lambda s: m.quotes.get(s), clock,
+                           IdFactory("b"))
 
 
 def _approved(signer):
@@ -415,27 +417,27 @@ def _approved(signer):
 
 
 def test_tampered_order_is_rejected():
-    signer = OrderSigner()
+    signer = EphemeralSigner()
     order = _approved(signer)
     for change in ({"notional": order.notional * 10}, {"side": Side.SELL}, {"symbol": "BBB"},
-                   {"limit_price": D("1")}, {"signature": "0" * 64}):
+                   {"limit_price": D("1")}, {"signature": "0" * 128}):
         with pytest.raises(ForgedOrder):
             _sim(signer).submit(order.model_copy(update=change))
 
 
 def test_order_signed_by_another_signer_is_rejected():
     with pytest.raises(ForgedOrder):
-        _sim(OrderSigner()).submit(_approved(OrderSigner()))
+        _sim(EphemeralSigner()).submit(_approved(EphemeralSigner()))
 
 
 def test_non_order_objects_are_rejected():
     m, a = market(), account()
     with pytest.raises(ForgedOrder):
-        _sim(OrderSigner()).submit(proposal(m, a))
+        _sim(EphemeralSigner()).submit(proposal(m, a))
 
 
 def test_replayed_order_is_rejected():
-    signer = OrderSigner()
+    signer = EphemeralSigner()
     order, sim = _approved(signer), _sim(signer)
     sim.submit(order)
     with pytest.raises(DuplicateOrder):

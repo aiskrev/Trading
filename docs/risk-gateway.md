@@ -1,7 +1,7 @@
 # Pre-trade Risk Gateway
 
 `src/trading_agent/risk/gateway.py` is the only component that can mint an executable
-(`ApprovedOrder`, HMAC-signed) order. It is deterministic: same inputs, same policy, same clock
+(`ApprovedOrder` v2, Ed25519-signed, ADR 0003) order. It is deterministic: same inputs, same policy, same clock
 ⇒ same decision. Changes here need tests and an explicit production approval (CLAUDE.md, CODEOWNERS).
 
 ## Threshold provenance: configuration only, never Claude

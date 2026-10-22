@@ -26,7 +26,7 @@ SCHEMAS = {
     "critic_body.v1.json": CriticBody,
     "critic_verdict.v1.json": CriticVerdict,
     "risk_decision.v1.json": RiskDecision,
-    "approved_order.v1.json": ApprovedOrder,
+    "approved_order.v2.json": ApprovedOrder,
     "broker_ack.v1.json": BrokerAck,
     "fill.v1.json": Fill,
     "audit_record.v1.json": AuditRecord,
