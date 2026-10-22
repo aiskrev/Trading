@@ -1,4 +1,7 @@
+from datetime import datetime, timezone
 from typing import Any, Dict, List, NamedTuple, Optional
+
+from pydantic_core import to_jsonable_python
 
 from trading_agent.contracts.account import AccountSnapshot
 from trading_agent.contracts.features import FeatureSet
@@ -33,7 +36,8 @@ class ClaudePlanner:
         self.ids = ids
 
     def build_payload(self, market: MarketSnapshot, account: AccountSnapshot, features: FeatureSet,
-                      active_triggers: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
+                      active_triggers: Optional[List[Dict[str, str]]] = None,
+                      evaluation_time: Optional[datetime] = None) -> Dict[str, Any]:
         payload = {
             "strategy_version": self.strategy_version,
             "strategy_rules": self.strategy_rules,
@@ -46,15 +50,20 @@ class ClaudePlanner:
         }
         if active_triggers is not None:  # deterministic triggers that caused this evaluation
             payload["active_triggers"] = active_triggers
+        if evaluation_time is not None:  # the orchestrator's clock: lets the model verify snapshot age
+            if evaluation_time.tzinfo is None:
+                raise ValueError("evaluation_time must be timezone-aware")
+            payload["evaluation_time"] = to_jsonable_python(evaluation_time.astimezone(timezone.utc))
         return payload
 
     def plan(self, market: MarketSnapshot, account: AccountSnapshot, features: FeatureSet,
-             active_triggers: Optional[List[Dict[str, str]]] = None) -> PlanResult:
+             active_triggers: Optional[List[Dict[str, str]]] = None,
+             evaluation_time: Optional[datetime] = None) -> PlanResult:
         failure: Optional[str] = None
         raw: Optional[str] = None
         try:
             raw = self.llm.complete(self.prompt.text, self.prompt.prompt_id, self.prompt.version,
-                                    self.build_payload(market, account, features, active_triggers))
+                                    self.build_payload(market, account, features, active_triggers, evaluation_time))
             body = parse_strict(raw, ProposalBody)
         except LLMUnavailable:
             failure = "LLM_UNAVAILABLE"

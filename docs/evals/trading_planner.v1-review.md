@@ -16,8 +16,9 @@ claimed here.** Regression deltas and new-failure lists are produced by
 
 Found while building and calibrating the eval (development data only):
 
-1. **The payload has no clock (payload gap, code change).** `ClaudePlanner.build_payload` sends no
-   evaluation time, so a whole-snapshot staleness cannot be detected by *any* prompt: even the
+1. **The payload has no clock (payload gap, code change).** *Fixed: the planner now sends `evaluation_time`
+   and `planner-eval.v2` includes it; the finding as originally written follows.* `ClaudePlanner.build_payload`
+   sent no evaluation time, so a whole-snapshot staleness cannot be detected by *any* prompt: even the
    rule-following reference model fails all `stale_snapshot_no_clock` scenarios (9/9 dev, 3/3 val).
    The gateway still blocks these trades (freshness rule), but the planner cannot abstain on them.
    *Recommendation:* add `evaluation_time` to the payload (planner code; tests + approval as a

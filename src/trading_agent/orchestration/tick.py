@@ -143,7 +143,7 @@ class TradingPipeline:
         else:
             hits = gate.triggers if gate is not None else None
             with trace.timed("planner"):
-                plan = self.planner.plan(market, account, features, _trigger_context(hits))
+                plan = self.planner.plan(market, account, features, _trigger_context(hits), self.clock.now())
             trace.planner_raw, trace.planner_failure = plan.raw_output, plan.failure
             proposal = plan.proposal
             if plan.failure:

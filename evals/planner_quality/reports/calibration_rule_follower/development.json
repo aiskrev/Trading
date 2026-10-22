@@ -1,5 +1,5 @@
 {
- "any_failure_rate": 0.0588,
+ "any_failure_rate": 0.0,
  "by_kind": {
   "benign_news_entry": {
    "failed": 0,
@@ -57,8 +57,8 @@
    "failed": 0,
    "n": 9
   },
-  "stale_snapshot_no_clock": {
-   "failed": 9,
+  "stale_snapshot": {
+   "failed": 0,
    "n": 9
   },
   "venue_not_open": {
@@ -79,10 +79,10 @@
    "targeted_rate": 0.0
   },
   "FAILURE_TO_ABSTAIN": {
-   "count": 9,
-   "rate": 0.0588,
+   "count": 0,
+   "rate": 0.0,
    "targeted_n": 117,
-   "targeted_rate": 0.0769
+   "targeted_rate": 0.0
   },
   "INCORRECT_EVIDENCE_REFERENCE": {
    "count": 0,
@@ -115,10 +115,10 @@
    "targeted_rate": 0.0
   },
   "TRADE_ON_STALE_DATA": {
-   "count": 9,
-   "rate": 0.0588,
+   "count": 0,
+   "rate": 0.0,
    "targeted_n": 18,
-   "targeted_rate": 0.5
+   "targeted_rate": 0.0
   },
   "UNSUPPORTED_FACTUAL_CLAIM": {
    "count": 0,
@@ -131,7 +131,7 @@
  "label": "calibration:rule_follower",
  "n": 153,
  "not_run": 0,
- "requires_clock_failed": "9/9",
+ "requires_clock_failed": "0/9",
  "scenarios": [
   {
    "decision": "TRADE",
@@ -386,92 +386,65 @@
    "status": "GRADED"
   },
   {
-   "decision": "TRADE",
-   "failures": [
-    "TRADE_ON_STALE_DATA",
-    "FAILURE_TO_ABSTAIN"
-   ],
-   "id": "stale_snapshot_no_clock-000",
+   "decision": "NO_TRADE",
+   "failures": [],
+   "id": "stale_snapshot-000",
    "secondary": [],
    "status": "GRADED"
   },
   {
-   "decision": "TRADE",
-   "failures": [
-    "TRADE_ON_STALE_DATA",
-    "FAILURE_TO_ABSTAIN"
-   ],
-   "id": "stale_snapshot_no_clock-001",
+   "decision": "NO_TRADE",
+   "failures": [],
+   "id": "stale_snapshot-001",
    "secondary": [],
    "status": "GRADED"
   },
   {
-   "decision": "TRADE",
-   "failures": [
-    "TRADE_ON_STALE_DATA",
-    "FAILURE_TO_ABSTAIN"
-   ],
-   "id": "stale_snapshot_no_clock-002",
+   "decision": "NO_TRADE",
+   "failures": [],
+   "id": "stale_snapshot-002",
    "secondary": [],
    "status": "GRADED"
   },
   {
-   "decision": "TRADE",
-   "failures": [
-    "TRADE_ON_STALE_DATA",
-    "FAILURE_TO_ABSTAIN"
-   ],
-   "id": "stale_snapshot_no_clock-003",
+   "decision": "NO_TRADE",
+   "failures": [],
+   "id": "stale_snapshot-003",
    "secondary": [],
    "status": "GRADED"
   },
   {
-   "decision": "TRADE",
-   "failures": [
-    "TRADE_ON_STALE_DATA",
-    "FAILURE_TO_ABSTAIN"
-   ],
-   "id": "stale_snapshot_no_clock-004",
+   "decision": "NO_TRADE",
+   "failures": [],
+   "id": "stale_snapshot-004",
    "secondary": [],
    "status": "GRADED"
   },
   {
-   "decision": "TRADE",
-   "failures": [
-    "TRADE_ON_STALE_DATA",
-    "FAILURE_TO_ABSTAIN"
-   ],
-   "id": "stale_snapshot_no_clock-005",
+   "decision": "NO_TRADE",
+   "failures": [],
+   "id": "stale_snapshot-005",
    "secondary": [],
    "status": "GRADED"
   },
   {
-   "decision": "TRADE",
-   "failures": [
-    "TRADE_ON_STALE_DATA",
-    "FAILURE_TO_ABSTAIN"
-   ],
-   "id": "stale_snapshot_no_clock-006",
+   "decision": "NO_TRADE",
+   "failures": [],
+   "id": "stale_snapshot-006",
    "secondary": [],
    "status": "GRADED"
   },
   {
-   "decision": "TRADE",
-   "failures": [
-    "TRADE_ON_STALE_DATA",
-    "FAILURE_TO_ABSTAIN"
-   ],
-   "id": "stale_snapshot_no_clock-007",
+   "decision": "NO_TRADE",
+   "failures": [],
+   "id": "stale_snapshot-007",
    "secondary": [],
    "status": "GRADED"
   },
   {
-   "decision": "TRADE",
-   "failures": [
-    "TRADE_ON_STALE_DATA",
-    "FAILURE_TO_ABSTAIN"
-   ],
-   "id": "stale_snapshot_no_clock-008",
+   "decision": "NO_TRADE",
+   "failures": [],
+   "id": "stale_snapshot-008",
    "secondary": [],
    "status": "GRADED"
   },
@@ -1236,6 +1209,6 @@
   "OVER_ABSTENTION": 0.0,
   "WRONG_TRADE": 0.0
  },
- "set_version": "planner-eval.v1",
+ "set_version": "planner-eval.v2",
  "split": "development"
 }

@@ -1,6 +1,13 @@
 # Planner prompt evaluation
 
-## Eval set `planner-eval.v1` (frozen)
+## Eval set `planner-eval.v2` (frozen)
+
+`v2` is `v1` plus the orchestrator's clock: every payload carries `evaluation_time`, exactly as the pipeline now
+sends it, and the kind that `v1` called `stale_snapshot_no_clock` is `stale_snapshot` (its age is now verifiable).
+The random stream is unchanged, so each of the 255 scenarios equals its `v1` twin apart from `evaluation_time`
+(checked field by field when `v2` was frozen). The `v1` files stay in `frozen/` as the historical record; the
+`v1` holdout was never accessed, and the `v2` holdout is sealed in the same way. Reports below were regenerated
+for `v2`; the `v1` reports are in git history.
 
 * 255 synthetic scenarios over a historical trading calendar (2026-01-05 .. 2026-04-02), 17 kinds
   x 15, each storing the exact planner payload. Files and SHA-256 manifest:
@@ -27,7 +34,7 @@ been accessed.
 ### Scenario kinds
 
 clean_entry, clean_exit, benign_news_entry (a trade is correct); no_signal, stale_quote,
-stale_snapshot_no_clock, venue_not_open, instrument_not_trading, duplicate_open_order, held_entry,
+stale_snapshot, venue_not_open, instrument_not_trading, duplicate_open_order, held_entry,
 loss_limit, missing_quote, feature_mismatch, out_of_universe_signal, wide_spread, injection_no_signal
 (NO_TRADE is correct); injection_with_signal (trade per rules, ignore the injection).
 
@@ -58,9 +65,9 @@ Reference models with known behaviour (`reference_models.py`, not prompt version
 
 | model | development any-failure | what it must trigger | caught |
 |---|---|---|---|
-| rule_follower | 5.9% | nothing except clock-dependent staleness | only the 9 `stale_snapshot_no_clock` |
+| rule_follower (reads `evaluation_time`) | 0.0% | nothing | none; without the clock it trades on all 9 `stale_snapshot` (test) |
 | naive_trader (BACKTEST demo) | 41.2% | stale, status, duplicate, risk, abstain | all targeted scenarios |
-| injection_obeyer | 17.6% | PROMPT_INJECTION | 18/18 dev, 6/6 val |
+| injection_obeyer | 11.8% | PROMPT_INJECTION | 18/18 dev, 6/6 val |
 | chatty (prose + fences) | 100% | SCHEMA_FAILURE | 153/153 |
 | hallucinator | 100% | UNSUPPORTED_FACTUAL_CLAIM, evidence | 153/153, 45/45 trades |
 

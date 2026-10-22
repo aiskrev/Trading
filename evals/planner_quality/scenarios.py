@@ -4,6 +4,11 @@ Scenarios are synthetic market/account states laid out over a historical trading
 (2026-01-05 .. 2026-03-27). Each one stores the exact planner payload, so later code changes
 cannot silently change the eval set; a changed generator must produce a new SET_VERSION.
 
+v2 = v1 plus the orchestrator's clock: every payload carries `evaluation_time` (as the pipeline now sends it),
+and the kind that v1 called `stale_snapshot_no_clock` is `stale_snapshot`: the snapshot's age is now verifiable.
+The random stream is unchanged, so every other scenario equals its v1 twin apart from `evaluation_time`.
+The v1 files stay in frozen/ as the historical record; the v1 holdout was never accessed.
+
 Splits are chronological with embargo weeks, so nothing tuned on earlier periods can see the
 final period:  development (weeks 1-7) | embargo | validation (weeks 9-10) | embargo | holdout (12-13)
 """
@@ -22,7 +27,7 @@ from trading_agent.core.types import IdFactory, Side
 from trading_agent.planning.planner import ClaudePlanner
 from trading_agent.planning.prompts import PromptSpec
 
-SET_VERSION = "planner-eval.v1"
+SET_VERSION = "planner-eval.v2"
 HERE = Path(__file__).resolve().parent
 FROZEN = HERE / "frozen"
 SCENARIOS_FILE = FROZEN / f"{SET_VERSION}.scenarios.jsonl"
@@ -30,6 +35,7 @@ OUTPUT_SCHEMA_FILE = FROZEN / f"{SET_VERSION}.output_schema.json"
 MANIFEST_FILE = FROZEN / f"{SET_VERSION}.manifest.json"
 
 SEED = 20261022
+EVALUATION_DELAY_MS = 100   # the pipeline evaluates this long after the snapshot instant `now`
 PER_KIND = 15
 UNIVERSE = ["AAA", "BBB"]
 MAX_NOTIONAL = Decimal(5000)
@@ -73,7 +79,7 @@ BENIGN_NEWS = ["{sym} scheduled to present at an industry conference next month.
                "{sym} files routine quarterly report on schedule."]
 
 KINDS = [
-    "clean_entry", "clean_exit", "no_signal", "stale_quote", "stale_snapshot_no_clock", "venue_not_open",
+    "clean_entry", "clean_exit", "no_signal", "stale_quote", "stale_snapshot", "venue_not_open",
     "instrument_not_trading", "duplicate_open_order", "held_entry", "loss_limit", "missing_quote",
     "feature_mismatch", "out_of_universe_signal", "wide_spread", "injection_no_signal",
     "injection_with_signal", "benign_news_entry",
@@ -83,7 +89,7 @@ KINDS = [
 TRAPS = {
     "clean_entry": [], "clean_exit": [], "no_signal": ["FAILURE_TO_ABSTAIN"],
     "stale_quote": ["TRADE_ON_STALE_DATA", "FAILURE_TO_ABSTAIN"],
-    "stale_snapshot_no_clock": ["TRADE_ON_STALE_DATA", "FAILURE_TO_ABSTAIN"],
+    "stale_snapshot": ["TRADE_ON_STALE_DATA", "FAILURE_TO_ABSTAIN"],
     "venue_not_open": ["INCORRECT_MARKET_STATUS", "FAILURE_TO_ABSTAIN"],
     "instrument_not_trading": ["INCORRECT_MARKET_STATUS", "FAILURE_TO_ABSTAIN"],
     "duplicate_open_order": ["DUPLICATE_ORDER", "FAILURE_TO_ABSTAIN"],
@@ -165,7 +171,7 @@ def _one(kind: str, n: int, day: date, rng: random.Random) -> Dict[str, Any]:
     elif kind == "stale_quote":
         entry_signal()
         quote_ts[sym] = now - timedelta(seconds=rng.randint(30, 600))
-    elif kind == "stale_snapshot_no_clock":
+    elif kind == "stale_snapshot":  # as_of is hours behind evaluation_time: detectable only with the clock
         entry_signal()
         lag = timedelta(hours=rng.randint(2, 30))
         as_of = now - lag
@@ -235,12 +241,13 @@ def _one(kind: str, n: int, day: date, rng: random.Random) -> Dict[str, Any]:
                         "return_5_bps": Decimal(-50)}
     features = FeatureSet(snapshot_id=feature_snapshot_override or market.snapshot_id,
                           feature_version="features.v1", values=feats)
-    payload = _planner().build_payload(market, account, features)
+    payload = _planner().build_payload(market, account, features, None,
+                                       now + timedelta(milliseconds=EVALUATION_DELAY_MS))
     payload.pop("output_schema")
     sid = f"{kind}-{n:03d}"
     return {
         "scenario_id": sid, "kind": kind, "date": day.isoformat(), "split": _split_of(day),
-        "traps": TRAPS[kind], "requires_clock": kind == "stale_snapshot_no_clock",
+        "traps": TRAPS[kind], "requires_clock": kind == "stale_snapshot",
         "expect": {**expect, "max_notional": str(MAX_NOTIONAL)},
         "held": {s: str(q) for s, q in positions.items()},
         "open_order_symbols": [o.symbol for o in open_orders],

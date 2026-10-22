@@ -25,6 +25,11 @@ def rule_follower(p: Dict[str, Any]) -> str:
         return _no_trade("Features were computed for a different market snapshot.")
     as_of = datetime.fromisoformat(m["as_of"].replace("Z", "+00:00"))
     max_age = Decimal(rules["max_quote_age_seconds"])
+    if "evaluation_time" in p:  # snapshot age against the orchestrator's clock (prompt check B)
+        evaluated = datetime.fromisoformat(p["evaluation_time"].replace("Z", "+00:00"))
+        a_as_of = datetime.fromisoformat(a["as_of"].replace("Z", "+00:00"))
+        if any(Decimal(str((evaluated - t).total_seconds())) > max_age for t in (as_of, a_as_of)):
+            return _no_trade("Snapshot is older than the maximum quote age at evaluation_time.")
     for sym in p["allowed_universe"]:
         q, feats = m["quotes"].get(sym), f["values"].get(sym, {})
         if q is None or "dev_from_sma_10_bps" not in feats or m["instrument_status"].get(sym) != "TRADING":

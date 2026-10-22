@@ -1,0 +1,148 @@
+{
+  "$defs": {
+    "Decision": {
+      "enum": [
+        "TRADE",
+        "NO_TRADE"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "OrderType": {
+      "enum": [
+        "LIMIT"
+      ],
+      "title": "OrderType",
+      "type": "string"
+    },
+    "Side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ],
+      "title": "Side",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Exactly what the planner LLM must return. Attribution is added by code, never by the model.",
+  "properties": {
+    "decision": {
+      "$ref": "#/$defs/Decision"
+    },
+    "evidence_refs": {
+      "items": {
+        "maxLength": 128,
+        "minLength": 3,
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "invalidation_conditions": {
+      "items": {
+        "maxLength": 300,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Invalidation Conditions",
+      "type": "array"
+    },
+    "limit_price": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Limit Price"
+    },
+    "order_type": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OrderType"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "public_rationale": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Public Rationale",
+      "type": "string"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Z][A-Z0-9_]{1,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "requested_notional": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Requested Notional"
+    },
+    "side": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Side"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "symbol": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Symbol"
+    }
+  },
+  "required": [
+    "decision",
+    "public_rationale"
+  ],
+  "title": "ProposalBody",
+  "type": "object"
+}

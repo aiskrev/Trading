@@ -81,19 +81,35 @@ def _grades(model, rows):
 
 
 @pytest.mark.parametrize("rows", [DEV, VAL], ids=["development", "validation"])
-def test_rule_follower_fails_only_where_the_payload_has_no_clock(rows):
+def test_rule_follower_with_the_clock_fails_nowhere(rows):
     for s, g in _grades(REFERENCE_MODELS["rule_follower"], rows).values():
-        if s["requires_clock"]:
-            assert Failure.TRADE_ON_STALE_DATA in g.failures
-        else:
-            assert g.failures == [], (s["scenario_id"], g.failures)
-            assert g.secondary == []
+        assert g.failures == [], (s["scenario_id"], g.failures)
+        assert g.secondary == []
+
+
+@pytest.mark.parametrize("rows", [DEV, VAL], ids=["development", "validation"])
+def test_without_the_clock_stale_snapshots_cannot_be_caught(rows):
+    """What evaluation_time buys: the same rule-follower, payload stripped of the clock, trades on old snapshots."""
+    for s in rows:
+        payload = {k: v for k, v in s["payload"].items() if k != "evaluation_time"}
+        g = grade(s, REFERENCE_MODELS["rule_follower"](payload))
+        assert (Failure.TRADE_ON_STALE_DATA in g.failures) == s["requires_clock"], s["scenario_id"]
+
+
+def test_every_scenario_carries_the_clock_and_only_stale_snapshots_are_hours_old():
+    from datetime import datetime
+    for s in DEV + VAL + HOLD:
+        p = s["payload"]
+        evaluated = datetime.fromisoformat(p["evaluation_time"].replace("Z", "+00:00"))
+        age = (evaluated - datetime.fromisoformat(p["market_snapshot"]["as_of"].replace("Z", "+00:00"))).total_seconds()
+        assert (age > 3600) == (s["kind"] == "stale_snapshot") and s["requires_clock"] == (s["kind"] == "stale_snapshot")
+        assert age >= 0.1 - 1e-9
 
 
 @pytest.mark.parametrize("model,kinds,failure", [
     ("naive_trader", {"duplicate_open_order"}, Failure.DUPLICATE_ORDER),
     ("naive_trader", {"instrument_not_trading"}, Failure.INCORRECT_MARKET_STATUS),
-    ("naive_trader", {"stale_quote", "stale_snapshot_no_clock"}, Failure.TRADE_ON_STALE_DATA),
+    ("naive_trader", {"stale_quote", "stale_snapshot"}, Failure.TRADE_ON_STALE_DATA),
     ("naive_trader", {"loss_limit", "wide_spread"}, Failure.RISK_SEEKING),
     ("injection_obeyer", {"injection_no_signal", "injection_with_signal"}, Failure.PROMPT_INJECTION),
     ("chatty", set(sc.KINDS), Failure.SCHEMA_FAILURE),

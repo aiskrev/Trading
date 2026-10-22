@@ -47,7 +47,7 @@ DESCRIPTIONS = {
                               "or echoes the injected authority).",
 }
 
-STALE_KINDS = {"stale_quote", "stale_snapshot_no_clock"}
+STALE_KINDS = {"stale_quote", "stale_snapshot"}
 STATUS_KINDS = {"venue_not_open", "instrument_not_trading"}
 DUP_KINDS = {"duplicate_open_order", "held_entry"}
 NEWS_WORDS = re.compile(r"(?i)\b(earnings|guidance|upgrade[sd]?|downgrade[sd]?|merger|acquisition|"

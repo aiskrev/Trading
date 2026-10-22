@@ -1,0 +1,82 @@
+{
+  "counts": {
+    "development": {
+      "benign_news_entry": 9,
+      "clean_entry": 9,
+      "clean_exit": 9,
+      "duplicate_open_order": 9,
+      "feature_mismatch": 9,
+      "held_entry": 9,
+      "injection_no_signal": 9,
+      "injection_with_signal": 9,
+      "instrument_not_trading": 9,
+      "loss_limit": 9,
+      "missing_quote": 9,
+      "no_signal": 9,
+      "out_of_universe_signal": 9,
+      "stale_quote": 9,
+      "stale_snapshot": 9,
+      "venue_not_open": 9,
+      "wide_spread": 9
+    },
+    "holdout": {
+      "benign_news_entry": 3,
+      "clean_entry": 3,
+      "clean_exit": 3,
+      "duplicate_open_order": 3,
+      "feature_mismatch": 3,
+      "held_entry": 3,
+      "injection_no_signal": 3,
+      "injection_with_signal": 3,
+      "instrument_not_trading": 3,
+      "loss_limit": 3,
+      "missing_quote": 3,
+      "no_signal": 3,
+      "out_of_universe_signal": 3,
+      "stale_quote": 3,
+      "stale_snapshot": 3,
+      "venue_not_open": 3,
+      "wide_spread": 3
+    },
+    "validation": {
+      "benign_news_entry": 3,
+      "clean_entry": 3,
+      "clean_exit": 3,
+      "duplicate_open_order": 3,
+      "feature_mismatch": 3,
+      "held_entry": 3,
+      "injection_no_signal": 3,
+      "injection_with_signal": 3,
+      "instrument_not_trading": 3,
+      "loss_limit": 3,
+      "missing_quote": 3,
+      "no_signal": 3,
+      "out_of_universe_signal": 3,
+      "stale_quote": 3,
+      "stale_snapshot": 3,
+      "venue_not_open": 3,
+      "wide_spread": 3
+    }
+  },
+  "files": {
+    "planner-eval.v2.output_schema.json": "d7c2d0ef142580ed4d876f6838e8221457889678590f3fa5fe0dd64e057f579f",
+    "planner-eval.v2.scenarios.jsonl": "d974ff14d1bcce8dcb75b07a23250f4f84fc3581ad9c696044a5d6e18eb8a850"
+  },
+  "seed": 20261022,
+  "set_version": "planner-eval.v2",
+  "splits": {
+    "development": [
+      "2026-01-05",
+      "2026-02-20"
+    ],
+    "holdout": [
+      "2026-03-23",
+      "2026-04-03"
+    ],
+    "validation": [
+      "2026-03-02",
+      "2026-03-13"
+    ]
+  },
+  "total": 255
+}

@@ -123,3 +123,28 @@ approvals:
       simulated_broker.py; APR-0005's other files are unchanged and re-listed here. Approved before commit;
       the approving commit is the one that adds this entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0007
+    date: 2026-10-22
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "I approve the model client, evaluation_time in the planner payload, and eval set planner-eval.v2 for the BACKTEST stage, as APR-0007. Record the approval, update the roadmap and handoff, and commit."
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/model_client/client.py: 29362e8a5a39a3ae8cf471ab7d289810cbef02045d2f3b7b4142466e0ee692e3
+      src/trading_agent/model_client/transport.py: 74c2aa7169d46b62fb07ee5d56462621e3ceca3cc81ae224deb950ea6f07cb64
+      src/trading_agent/planning/planner.py: 308fd49cfa7c2b49bae6353e74b28b127793840700918390fe643f0db15c0fb2
+      evals/planner_quality/frozen/planner-eval.v2.scenarios.jsonl: d974ff14d1bcce8dcb75b07a23250f4f84fc3581ad9c696044a5d6e18eb8a850
+      evals/planner_quality/frozen/planner-eval.v2.output_schema.json: d7c2d0ef142580ed4d876f6838e8221457889678590f3fa5fe0dd64e057f579f
+    code_scope: >-
+      Roadmap P2, offline part. model_client: SdkLLMClient over a ModelTransport whose request schema is closed
+      (model, system, user, max_tokens, timeout_s; no field for tools, tool choice or MCP servers), pinned model
+      id, bounded retries of transient errors only, strict reply validation (exactly one complete text block;
+      tool-use or any other block, empty, truncated or refused replies are SchemaFailure; a different answering
+      model is refused), metadata-only logs. The planner payload gains evaluation_time (orchestrator clock, UTC;
+      orchestration/tick.py passes clock.now()). Eval set planner-eval.v2 = v1 plus evaluation_time, frozen,
+      holdout sealed and never accessed. Does NOT approve: a real SDK transport, network access, an API key,
+      any model call, or any prompt version (prompts/trading_planner.v1.md is unchanged; the v2 candidate stays
+      offline). Tests: tests/model_client/test_sdk_client.py, tests/unit/test_evaluation_time.py,
+      tests/evals/test_planner_quality.py. Approved before commit; the approving commit is the one that adds
+      this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

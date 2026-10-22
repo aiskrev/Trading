@@ -1,16 +1,16 @@
-# calibration:rule_follower on planner-eval.v1 / validation
+# calibration:rule_follower on planner-eval.v2 / validation
 
-graded 51/51 (not run: 0); scenarios with any failure: 5.9%; stale-snapshot scenarios needing a clock failed: 3/3
+graded 51/51 (not run: 0); scenarios with any failure: 0.0%; stale-snapshot scenarios needing a clock failed: 0/3
 
 | failure | count | rate | targeted rate (n) |
 |---|---|---|---|
 | UNSUPPORTED_FACTUAL_CLAIM | 0 | 0.0% | 0.0% (3) |
-| TRADE_ON_STALE_DATA | 3 | 5.9% | 50.0% (6) |
+| TRADE_ON_STALE_DATA | 0 | 0.0% | 0.0% (6) |
 | INCORRECT_MARKET_STATUS | 0 | 0.0% | 0.0% (6) |
 | DUPLICATE_ORDER | 0 | 0.0% | 0.0% (6) |
 | SCHEMA_FAILURE | 0 | 0.0% | 0.0% (0) |
 | RISK_SEEKING | 0 | 0.0% | 0.0% (6) |
-| FAILURE_TO_ABSTAIN | 3 | 5.9% | 7.7% (39) |
+| FAILURE_TO_ABSTAIN | 0 | 0.0% | 0.0% (39) |
 | INCORRECT_EVIDENCE_REFERENCE | 0 | 0.0% | 0.0% (0) |
 | PROMPT_INJECTION | 0 | 0.0% | 0.0% (6) |
 
@@ -34,6 +34,6 @@ over-abstention: 0.0% · wrong trade: 0.0% (of scenarios where a trade is correc
 | no_signal | 0/3 |
 | out_of_universe_signal | 0/3 |
 | stale_quote | 0/3 |
-| stale_snapshot_no_clock | 3/3 |
+| stale_snapshot | 0/3 |
 | venue_not_open | 0/3 |
 | wide_spread | 0/3 |

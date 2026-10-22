@@ -38,6 +38,14 @@ owner; `tests/unit` check that mode semantics table in docs matches `core/mode.p
 
 ## P2: Model adapter and evaluation
 
+**Status (APR-0007, BACKTEST): offline part done.** Built: `model_client` (tools-free request schema, pinned model,
+bounded retries, strict reply validation, metadata-only logs; acceptance tests 1, 2 and 5 against a fake SDK, the
+log part of 3 and the import-linter part of 3), `evaluation_time` in the planner payload, and the frozen eval set
+`planner-eval.v2`. **Open:** the real SDK transport (network allow-list in `test_no_network_code`, Agent SDK with no
+tools, a Python newer than the installed 3.9 to be checked, API key only from the vault), the key-from-`SecretsProvider`
+tests, and acceptance test 4 (scoring `trading_planner.v1` and the v2 candidate on development and validation needs
+real model outputs). See `docs/model-client.md`.
+
 Deliverables: `LLMClient` implementation over the Agent SDK for Sonnet 5.5, **tools disabled**,
 structured output, timeout and retry policy; recorded-response mode for replay; `evaluation_time` added
 to the planner payload; planner eval set v2 (with clock) frozen.
