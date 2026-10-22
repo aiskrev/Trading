@@ -47,6 +47,18 @@ def test_forbidden_file_names(name, bad):
     assert bool(gate.scan_names([name])) is bad
 
 
+def test_hook_git_variables_are_stripped_from_subprocesses():
+    env = gate.clean_env({"GIT_INDEX_FILE": "/x/index", "GIT_DIR": "/x", "GIT_TERMINAL_PROMPT": "0", "PATH": "p"})
+    assert "GIT_INDEX_FILE" not in env and "GIT_DIR" not in env
+    assert env["GIT_TERMINAL_PROMPT"] == "0" and env["PATH"] == "p"
+
+
+def test_gate_errors_block_with_a_message(capsys, monkeypatch):
+    monkeypatch.setattr(gate, "_main", lambda lines: 1 / 0)
+    assert gate.main(["x"]) == 1
+    assert "BLOCKED: gate error ZeroDivisionError" in capsys.readouterr().out
+
+
 def test_branch_deletion_needs_no_checks():
     assert gate.main([f"(delete) {gate.ZERO} refs/heads/old {'a' * 40}"]) == 0
 
