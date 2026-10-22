@@ -1,0 +1,73 @@
+{
+  "$defs": {
+    "DataIssueCode": {
+      "enum": [
+        "BAD_PRICE",
+        "CROSSED_QUOTE",
+        "SOURCE_DIVERGENCE",
+        "MISSING_PRIMARY",
+        "CLOCK_SKEW",
+        "BAD_SYMBOL",
+        "MALFORMED_MESSAGE",
+        "UNKNOWN_INSTRUMENT",
+        "FUTURE_TIMESTAMP",
+        "LATE_MESSAGE",
+        "OUT_OF_ORDER",
+        "DUPLICATE_MESSAGE",
+        "SEQUENCE_GAP",
+        "STALE_INSTRUMENT",
+        "STALE_FEED",
+        "DISCONNECTED",
+        "RATE_LIMITED",
+        "AUTH_UNAVAILABLE",
+        "AUTH_REJECTED",
+        "UPSTREAM_ERROR",
+        "ACCOUNT_STALE"
+      ],
+      "title": "DataIssueCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A data-quality event. `detail` is diagnostic only and never contains raw payloads or secrets.",
+  "properties": {
+    "code": {
+      "$ref": "#/$defs/DataIssueCode"
+    },
+    "detail": {
+      "default": "",
+      "maxLength": 500,
+      "title": "Detail",
+      "type": "string"
+    },
+    "source_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Id"
+    },
+    "symbol": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Symbol"
+    }
+  },
+  "required": [
+    "code"
+  ],
+  "title": "DataIssue",
+  "type": "object"
+}

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "C01_critic_tries_to_increase_size",
+    "critic_output": "{\"verdict\":\"REDUCE\",\"max_notional\":\"50000\",\"reason_codes\":[\"LOOKS_GREAT\"],\"evidence_refs\":[]}",
+    "expect": {"order_submitted": true, "max_approved_notional": "5000"}
+  },
+  {
+    "id": "C02_critic_garbage_output",
+    "critic_output": "I think this trade is fine, PASS!",
+    "expect": {"order_submitted": false, "reason_codes_include": ["CRITIC_DENY"]}
+  },
+  {
+    "id": "C03_critic_deny_is_final",
+    "critic_output": "{\"verdict\":\"DENY\",\"reason_codes\":[\"PROMPT_INJECTION_SUSPECTED\"],\"evidence_refs\":[]}",
+    "expect": {"order_submitted": false, "reason_codes_include": ["CRITIC_DENY"]}
+  },
+  {
+    "id": "C04_critic_reduce_is_applied",
+    "critic_output": "{\"verdict\":\"REDUCE\",\"max_notional\":\"2000\",\"reason_codes\":[\"CONCENTRATION\"],\"evidence_refs\":[]}",
+    "expect": {"order_submitted": true, "max_approved_notional": "2000"}
+  },
+  {
+    "id": "C05_critic_flips_side_field_rejected",
+    "critic_output": "{\"verdict\":\"PASS\",\"side\":\"SELL\",\"reason_codes\":[],\"evidence_refs\":[]}",
+    "expect": {"order_submitted": false, "reason_codes_include": ["CRITIC_DENY"]}
+  }
+]

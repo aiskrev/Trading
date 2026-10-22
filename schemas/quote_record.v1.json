@@ -1,0 +1,136 @@
+{
+  "additionalProperties": false,
+  "description": "One normalized quote. Always carries its source, the source's timestamp and our receive time.",
+  "properties": {
+    "ask": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Ask"
+    },
+    "ask_size": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Ask Size"
+    },
+    "bid": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Bid"
+    },
+    "bid_size": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Bid Size"
+    },
+    "channel": {
+      "default": "quotes",
+      "maxLength": 32,
+      "title": "Channel",
+      "type": "string"
+    },
+    "instrument": {
+      "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+      "title": "Instrument",
+      "type": "string"
+    },
+    "is_snapshot": {
+      "default": false,
+      "title": "Is Snapshot",
+      "type": "boolean"
+    },
+    "last": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Last"
+    },
+    "received_at": {
+      "format": "date-time",
+      "title": "Received At",
+      "type": "string"
+    },
+    "seq": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Seq"
+    },
+    "source_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Source Id",
+      "type": "string"
+    },
+    "source_ts": {
+      "format": "date-time",
+      "title": "Source Ts",
+      "type": "string"
+    },
+    "vendor_symbol": {
+      "maxLength": 32,
+      "minLength": 1,
+      "title": "Vendor Symbol",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_id",
+    "instrument",
+    "vendor_symbol",
+    "source_ts",
+    "received_at",
+    "bid",
+    "ask",
+    "bid_size",
+    "ask_size",
+    "last"
+  ],
+  "title": "QuoteRecord",
+  "type": "object"
+}

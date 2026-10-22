@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "RiskVerdict": {
+      "enum": [
+        "APPROVE",
+        "REDUCE",
+        "DENY"
+      ],
+      "title": "RiskVerdict",
+      "type": "string"
+    },
+    "RuleResult": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "default": "",
+          "title": "Detail",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason Code"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_id",
+        "passed"
+      ],
+      "title": "RuleResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "approved_notional": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Approved Notional"
+    },
+    "decision_id": {
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "evaluated_at": {
+      "format": "date-time",
+      "title": "Evaluated At",
+      "type": "string"
+    },
+    "policy_sha256": {
+      "title": "Policy Sha256",
+      "type": "string"
+    },
+    "policy_version": {
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "proposal_id": {
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "requested_notional": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Requested Notional"
+    },
+    "rule_results": {
+      "items": {
+        "$ref": "#/$defs/RuleResult"
+      },
+      "title": "Rule Results",
+      "type": "array"
+    },
+    "verdict": {
+      "$ref": "#/$defs/RiskVerdict"
+    }
+  },
+  "required": [
+    "decision_id",
+    "proposal_id",
+    "verdict",
+    "requested_notional",
+    "approved_notional",
+    "rule_results",
+    "policy_version",
+    "policy_sha256",
+    "evaluated_at"
+  ],
+  "title": "RiskDecision",
+  "type": "object"
+}

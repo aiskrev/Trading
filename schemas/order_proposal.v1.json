@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "Decision": {
+      "enum": [
+        "TRADE",
+        "NO_TRADE"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "OrderType": {
+      "enum": [
+        "LIMIT"
+      ],
+      "title": "OrderType",
+      "type": "string"
+    },
+    "Side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ],
+      "title": "Side",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "account_snapshot_id": {
+      "title": "Account Snapshot Id",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/Decision"
+    },
+    "evidence_refs": {
+      "items": {
+        "maxLength": 128,
+        "minLength": 3,
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "invalidation_conditions": {
+      "items": {
+        "maxLength": 300,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Invalidation Conditions",
+      "type": "array"
+    },
+    "limit_price": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Limit Price"
+    },
+    "market_snapshot_id": {
+      "title": "Market Snapshot Id",
+      "type": "string"
+    },
+    "model_version": {
+      "title": "Model Version",
+      "type": "string"
+    },
+    "order_type": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OrderType"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "prompt_sha256": {
+      "title": "Prompt Sha256",
+      "type": "string"
+    },
+    "prompt_version": {
+      "title": "Prompt Version",
+      "type": "string"
+    },
+    "proposal_id": {
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "public_rationale": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Public Rationale",
+      "type": "string"
+    },
+    "requested_notional": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Requested Notional"
+    },
+    "side": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Side"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "strategy_version": {
+      "title": "Strategy Version",
+      "type": "string"
+    },
+    "symbol": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Symbol"
+    }
+  },
+  "required": [
+    "decision",
+    "public_rationale",
+    "proposal_id",
+    "market_snapshot_id",
+    "account_snapshot_id",
+    "model_version",
+    "prompt_version",
+    "prompt_sha256",
+    "strategy_version"
+  ],
+  "title": "OrderProposal",
+  "type": "object"
+}

@@ -1,0 +1,674 @@
+{
+  "$defs": {
+    "AckStatus": {
+      "enum": [
+        "ACCEPTED",
+        "REJECTED",
+        "EXPIRED",
+        "CANCELLED"
+      ],
+      "title": "AckStatus",
+      "type": "string"
+    },
+    "Attribution": {
+      "additionalProperties": false,
+      "description": "The eight attribution fields required by CLAUDE.md, all mandatory and non-empty.",
+      "properties": {
+        "broker_result": {
+          "minLength": 1,
+          "title": "Broker Result",
+          "type": "string"
+        },
+        "code_commit": {
+          "minLength": 1,
+          "title": "Code Commit",
+          "type": "string"
+        },
+        "deployment_id": {
+          "minLength": 1,
+          "title": "Deployment Id",
+          "type": "string"
+        },
+        "market_snapshot_id": {
+          "minLength": 1,
+          "title": "Market Snapshot Id",
+          "type": "string"
+        },
+        "model_version": {
+          "minLength": 1,
+          "title": "Model Version",
+          "type": "string"
+        },
+        "prompt_version": {
+          "minLength": 1,
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "risk_policy_version": {
+          "minLength": 1,
+          "title": "Risk Policy Version",
+          "type": "string"
+        },
+        "strategy_version": {
+          "minLength": 1,
+          "title": "Strategy Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model_version",
+        "prompt_version",
+        "strategy_version",
+        "market_snapshot_id",
+        "risk_policy_version",
+        "code_commit",
+        "deployment_id",
+        "broker_result"
+      ],
+      "title": "Attribution",
+      "type": "object"
+    },
+    "AuditEventType": {
+      "enum": [
+        "DECISION",
+        "EXECUTION",
+        "SCHEMA_FAILURE",
+        "DATA_FAULT",
+        "STATE_CHANGE",
+        "RECONCILIATION"
+      ],
+      "title": "AuditEventType",
+      "type": "string"
+    },
+    "BrokerAck": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "title": "At",
+          "type": "string"
+        },
+        "order_id": {
+          "title": "Order Id",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "$ref": "#/$defs/AckStatus"
+        }
+      },
+      "required": [
+        "order_id",
+        "status",
+        "at"
+      ],
+      "title": "BrokerAck",
+      "type": "object"
+    },
+    "CriticVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_refs": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 3,
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "max_notional": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Notional"
+        },
+        "model_version": {
+          "title": "Model Version",
+          "type": "string"
+        },
+        "prompt_version": {
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "proposal_id": {
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "reason_codes": {
+          "items": {
+            "pattern": "^[A-Z][A-Z0-9_]{1,63}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "verdict": {
+          "$ref": "#/$defs/CriticVerdictKind"
+        }
+      },
+      "required": [
+        "verdict",
+        "proposal_id",
+        "model_version",
+        "prompt_version"
+      ],
+      "title": "CriticVerdict",
+      "type": "object"
+    },
+    "CriticVerdictKind": {
+      "enum": [
+        "PASS",
+        "REDUCE",
+        "DENY"
+      ],
+      "title": "CriticVerdictKind",
+      "type": "string"
+    },
+    "Decision": {
+      "enum": [
+        "TRADE",
+        "NO_TRADE"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "Fill": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "title": "At",
+          "type": "string"
+        },
+        "fee": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Fee"
+        },
+        "fill_id": {
+          "title": "Fill Id",
+          "type": "string"
+        },
+        "order_id": {
+          "title": "Order Id",
+          "type": "string"
+        },
+        "price": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Price"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Quantity"
+        },
+        "side": {
+          "$ref": "#/$defs/Side"
+        },
+        "symbol": {
+          "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+          "title": "Symbol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fill_id",
+        "order_id",
+        "symbol",
+        "side",
+        "quantity",
+        "price",
+        "fee",
+        "at"
+      ],
+      "title": "Fill",
+      "type": "object"
+    },
+    "OrderProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "account_snapshot_id": {
+          "title": "Account Snapshot Id",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/Decision"
+        },
+        "evidence_refs": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 3,
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "invalidation_conditions": {
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Invalidation Conditions",
+          "type": "array"
+        },
+        "limit_price": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Limit Price"
+        },
+        "market_snapshot_id": {
+          "title": "Market Snapshot Id",
+          "type": "string"
+        },
+        "model_version": {
+          "title": "Model Version",
+          "type": "string"
+        },
+        "order_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OrderType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prompt_sha256": {
+          "title": "Prompt Sha256",
+          "type": "string"
+        },
+        "prompt_version": {
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "proposal_id": {
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "public_rationale": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Public Rationale",
+          "type": "string"
+        },
+        "requested_notional": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested Notional"
+        },
+        "side": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Side"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "strategy_version": {
+          "title": "Strategy Version",
+          "type": "string"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "decision",
+        "public_rationale",
+        "proposal_id",
+        "market_snapshot_id",
+        "account_snapshot_id",
+        "model_version",
+        "prompt_version",
+        "prompt_sha256",
+        "strategy_version"
+      ],
+      "title": "OrderProposal",
+      "type": "object"
+    },
+    "OrderType": {
+      "enum": [
+        "LIMIT"
+      ],
+      "title": "OrderType",
+      "type": "string"
+    },
+    "RiskDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "approved_notional": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Approved Notional"
+        },
+        "decision_id": {
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "evaluated_at": {
+          "format": "date-time",
+          "title": "Evaluated At",
+          "type": "string"
+        },
+        "policy_sha256": {
+          "title": "Policy Sha256",
+          "type": "string"
+        },
+        "policy_version": {
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "proposal_id": {
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "requested_notional": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Requested Notional"
+        },
+        "rule_results": {
+          "items": {
+            "$ref": "#/$defs/RuleResult"
+          },
+          "title": "Rule Results",
+          "type": "array"
+        },
+        "verdict": {
+          "$ref": "#/$defs/RiskVerdict"
+        }
+      },
+      "required": [
+        "decision_id",
+        "proposal_id",
+        "verdict",
+        "requested_notional",
+        "approved_notional",
+        "rule_results",
+        "policy_version",
+        "policy_sha256",
+        "evaluated_at"
+      ],
+      "title": "RiskDecision",
+      "type": "object"
+    },
+    "RiskVerdict": {
+      "enum": [
+        "APPROVE",
+        "REDUCE",
+        "DENY"
+      ],
+      "title": "RiskVerdict",
+      "type": "string"
+    },
+    "RuleResult": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "default": "",
+          "title": "Detail",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason Code"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_id",
+        "passed"
+      ],
+      "title": "RuleResult",
+      "type": "object"
+    },
+    "Side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ],
+      "title": "Side",
+      "type": "string"
+    },
+    "TradingState": {
+      "enum": [
+        "NORMAL",
+        "REDUCE_ONLY",
+        "HALTED"
+      ],
+      "title": "TradingState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "acks": {
+      "items": {
+        "$ref": "#/$defs/BrokerAck"
+      },
+      "title": "Acks",
+      "type": "array"
+    },
+    "approved_order": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approved Order"
+    },
+    "at": {
+      "format": "date-time",
+      "title": "At",
+      "type": "string"
+    },
+    "attribution": {
+      "$ref": "#/$defs/Attribution"
+    },
+    "critic": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CriticVerdict"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "details": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Details",
+      "type": "object"
+    },
+    "event_type": {
+      "$ref": "#/$defs/AuditEventType"
+    },
+    "fills": {
+      "items": {
+        "$ref": "#/$defs/Fill"
+      },
+      "title": "Fills",
+      "type": "array"
+    },
+    "prev_hash": {
+      "title": "Prev Hash",
+      "type": "string"
+    },
+    "proposal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OrderProposal"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "record_hash": {
+      "title": "Record Hash",
+      "type": "string"
+    },
+    "risk_decision": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RiskDecision"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "seq": {
+      "minimum": 0,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "trading_state": {
+      "$ref": "#/$defs/TradingState"
+    }
+  },
+  "required": [
+    "seq",
+    "at",
+    "event_type",
+    "trading_state",
+    "attribution",
+    "prev_hash",
+    "record_hash"
+  ],
+  "title": "AuditRecord",
+  "type": "object"
+}

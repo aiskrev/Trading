@@ -1,0 +1,20 @@
+# Explicit approvals required by CLAUDE.md ("Code changes ... require tests and an explicit
+# production approval step"). Append-only: never edit or remove an entry; add a new one.
+# A risk policy may only be loaded for a mode listed in an approval whose sha256 matches the
+# pinned hash in risk_config.lock.yaml (enforced at startup).
+approvals:
+  - id: APR-0001
+    date: 2026-10-22
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "I approve risk-policy.v2 and the gateway changes for the BACKTEST stage."
+    modes: [BACKTEST]
+    files:
+      risk_policy.v2.yaml: 433bb1242caf511ba69ed19cffa3f876af98569fd18dcb4b3b1e733c94c11f33
+      restricted.v1.yaml: 674e2a1ddbe75f4b650bb33bfe62902824c3e251f51f28e4ea66becabc1714b4
+    code_scope: >-
+      Risk gateway v2: src/trading_agent/risk/** (session, net/sector/concentration exposure,
+      slippage, drawdown, minute rate limits, broker consistency, halt/restricted, buying power,
+      hash-pinned versioned config), with tests in tests/invariants and tests/unit/test_risk_config.py.
+      Not committed at time of approval (code_commit UNCOMMITTED).
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

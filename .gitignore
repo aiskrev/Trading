@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+.venv/
+.deps/
+*.egg-info/
+build/
+dist/
+runs/
+audit_out/
+
+# Secrets never live in the repo (CLAUDE.md credential policy).
+.env
+.env.*
+*.pem
+*.key
+*.p12
+secrets*.yaml
+secrets*.json

@@ -1,0 +1,3 @@
+# Keep LF everywhere so hash-pinned config and content hashes are identical on every OS.
+* text=auto eol=lf
+*.png binary

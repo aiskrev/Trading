@@ -1,0 +1,58 @@
+# Deterministic pre-trade risk limits. RELEASED VERSIONS ARE IMMUTABLE:
+# this file's SHA-256 is pinned in risk_config.lock.yaml and the loader refuses any change.
+# To change a limit, add risk_policy.v3.yaml (tests + explicit production approval, CODEOWNERS).
+version: risk-policy.v2
+restricted_list_file: restricted.v1.yaml
+
+instruments:            # the allowed universe; sector drives sector limits
+  AAA: {sector: TECH}
+  BBB: {sector: ENERGY}
+
+session:
+  timezone: America/New_York
+  weekdays: [MON, TUE, WED, THU, FRI]
+  open: "09:30"
+  close: "16:00"
+  avoid_open_minutes: 0
+  avoid_close_minutes: 5
+  holidays: ["2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03", "2026-05-25",
+             "2026-06-19", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25"]
+
+# freshness
+max_snapshot_age_seconds: 5
+max_quote_age_seconds: 3
+max_future_skew_seconds: 1
+
+# sizing and exposure (account currency)
+min_order_notional: "100"
+max_order_notional: "10000"
+max_position_notional: "25000"
+max_gross_exposure: "50000"
+max_net_exposure: "40000"
+max_sector_exposure: {TECH: "30000", ENERGY: "30000"}
+max_concentration_pct: "0.20"      # single-name value after trade / equity
+min_cash_buffer: "1000"
+
+# prices
+price_collar_bps: "50"             # |limit - mid| / mid
+max_spread_bps: "25"
+max_slippage_bps: "15"             # side-adjusted (limit vs mid) + commission
+commission_bps: "1"
+
+# losses
+daily_loss_limit: "2000"           # realized
+max_drawdown_pct: "0.03"           # mark-to-market from intraday equity high-water
+
+# order rates
+max_orders_per_day: 20
+max_orders_per_minute: 5
+max_orders_per_instrument_per_minute: 2
+
+# state requirements (fail closed when unknown)
+require_instrument_status: true
+require_broker_view: true
+max_broker_view_age_seconds: 5
+position_tolerance: "0.000001"
+
+allow_short: false
+critic_required: true

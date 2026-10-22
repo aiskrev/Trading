@@ -1,0 +1,4 @@
+# Compliance restricted list. Any order in these instruments is denied, including exits.
+# Immutable once released (hash-pinned); publish restricted.v2.yaml to change it.
+version: restricted.v1
+symbols: []

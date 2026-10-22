@@ -1,0 +1,48 @@
+{
+  "$defs": {
+    "AckStatus": {
+      "enum": [
+        "ACCEPTED",
+        "REJECTED",
+        "EXPIRED",
+        "CANCELLED"
+      ],
+      "title": "AckStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "format": "date-time",
+      "title": "At",
+      "type": "string"
+    },
+    "order_id": {
+      "title": "Order Id",
+      "type": "string"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    },
+    "status": {
+      "$ref": "#/$defs/AckStatus"
+    }
+  },
+  "required": [
+    "order_id",
+    "status",
+    "at"
+  ],
+  "title": "BrokerAck",
+  "type": "object"
+}

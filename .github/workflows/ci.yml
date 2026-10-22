@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history for the secret scan
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - name: Secret scan (repo + history)
+        uses: gitleaks/gitleaks-action@v2
+      - name: Architecture boundaries (AT-01)
+        run: lint-imports
+      - name: Schema drift (AT-05)
+        run: python scripts/export_schemas.py --check
+      - name: Released risk config unchanged
+        run: python scripts/lock_risk_config.py --check
+      - name: Tests (unit, invariants, replay, fault injection, security)
+        run: pytest
+      - name: Regression evals (AT-20)
+        run: python -m evals.runner

@@ -1,0 +1,102 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trading-agent"
+version = "0.1.0"
+description = "Controlled algorithmic trading skeleton: Claude plans, a deterministic gateway decides. BACKTEST only."
+requires-python = ">=3.9"
+dependencies = [
+    "pydantic>=2.6,<3",
+    "pyyaml>=6",
+    "tzdata; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "hypothesis>=6",
+    "import-linter>=2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", ".deps", "."]
+addopts = "-q"
+
+# ---------------------------------------------------------------------------
+# Architectural boundaries (AT-01). CI fails if any contract is broken.
+# ---------------------------------------------------------------------------
+[tool.importlinter]
+root_package = "trading_agent"
+
+[[tool.importlinter.contracts]]
+name = "Planner (LLM) never reaches execution, risk internals, signing, or secrets"
+type = "forbidden"
+source_modules = ["trading_agent.planning"]
+forbidden_modules = [
+    "trading_agent.execution",
+    "trading_agent.risk",
+    "trading_agent.core.signing",
+    "trading_agent.secret_store",
+    "trading_agent.orchestration",
+    "trading_agent.backtest",
+]
+
+[[tool.importlinter.contracts]]
+name = "Risk gateway is deterministic: no LLM code"
+type = "forbidden"
+source_modules = ["trading_agent.risk"]
+forbidden_modules = [
+    "trading_agent.planning",
+    "trading_agent.execution",
+    "trading_agent.orchestration",
+]
+
+[[tool.importlinter.contracts]]
+name = "Only orchestration and backtest may import execution"
+type = "forbidden"
+source_modules = [
+    "trading_agent.market_data",
+    "trading_agent.account_data",
+    "trading_agent.normalization",
+    "trading_agent.features",
+    "trading_agent.planning",
+    "trading_agent.risk",
+    "trading_agent.reconciliation",
+    "trading_agent.audit",
+    "trading_agent.observability",
+    "trading_agent.contracts",
+    "trading_agent.core",
+]
+forbidden_modules = ["trading_agent.execution"]
+
+[[tool.importlinter.contracts]]
+name = "Data adapters are read-only: no execution, risk, planning or orchestration"
+type = "forbidden"
+source_modules = ["trading_agent.market_data", "trading_agent.account_data"]
+forbidden_modules = [
+    "trading_agent.execution",
+    "trading_agent.risk",
+    "trading_agent.planning",
+    "trading_agent.orchestration",
+    "trading_agent.backtest",
+    "trading_agent.audit",
+    "trading_agent.core.signing",
+]
+
+[[tool.importlinter.contracts]]
+name = "Contracts and core are leaf layers"
+type = "forbidden"
+source_modules = ["trading_agent.contracts", "trading_agent.core"]
+forbidden_modules = [
+    "trading_agent.planning",
+    "trading_agent.risk",
+    "trading_agent.orchestration",
+    "trading_agent.backtest",
+    "trading_agent.audit",
+]

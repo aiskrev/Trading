@@ -1,0 +1,61 @@
+{
+  "$defs": {
+    "CriticVerdictKind": {
+      "enum": [
+        "PASS",
+        "REDUCE",
+        "DENY"
+      ],
+      "title": "CriticVerdictKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What the critic LLM must return. It has no field that could add size, flip side or change symbol.",
+  "properties": {
+    "evidence_refs": {
+      "items": {
+        "maxLength": 128,
+        "minLength": 3,
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "max_notional": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Notional"
+    },
+    "reason_codes": {
+      "items": {
+        "pattern": "^[A-Z][A-Z0-9_]{1,63}$",
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "verdict": {
+      "$ref": "#/$defs/CriticVerdictKind"
+    }
+  },
+  "required": [
+    "verdict"
+  ],
+  "title": "CriticBody",
+  "type": "object"
+}

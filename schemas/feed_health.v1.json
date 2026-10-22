@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "ConnectionState": {
+      "enum": [
+        "DISCONNECTED",
+        "CONNECTED",
+        "BACKOFF"
+      ],
+      "title": "ConnectionState",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "connects": {
+      "minimum": 0,
+      "title": "Connects",
+      "type": "integer"
+    },
+    "gaps": {
+      "minimum": 0,
+      "title": "Gaps",
+      "type": "integer"
+    },
+    "last_message_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Message At"
+    },
+    "late": {
+      "minimum": 0,
+      "title": "Late",
+      "type": "integer"
+    },
+    "malformed": {
+      "minimum": 0,
+      "title": "Malformed",
+      "type": "integer"
+    },
+    "messages": {
+      "minimum": 0,
+      "title": "Messages",
+      "type": "integer"
+    },
+    "next_attempt_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Next Attempt At"
+    },
+    "rate_limited": {
+      "minimum": 0,
+      "title": "Rate Limited",
+      "type": "integer"
+    },
+    "reconnects": {
+      "minimum": 0,
+      "title": "Reconnects",
+      "type": "integer"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/ConnectionState"
+    }
+  },
+  "required": [
+    "source_id",
+    "state",
+    "connects",
+    "reconnects",
+    "messages",
+    "malformed",
+    "gaps",
+    "late",
+    "rate_limited"
+  ],
+  "title": "FeedHealth",
+  "type": "object"
+}

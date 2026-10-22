@@ -1,0 +1,208 @@
+{
+  "$defs": {
+    "OpenOrderRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "instrument": {
+          "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+          "title": "Instrument",
+          "type": "string"
+        },
+        "limit_price": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Limit Price"
+        },
+        "notional": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Notional"
+        },
+        "order_ref": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Order Ref",
+          "type": "string"
+        },
+        "side": {
+          "$ref": "#/$defs/Side"
+        }
+      },
+      "required": [
+        "order_ref",
+        "instrument",
+        "side",
+        "notional",
+        "limit_price"
+      ],
+      "title": "OpenOrderRecord",
+      "type": "object"
+    },
+    "PositionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "avg_price": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Avg Price"
+        },
+        "instrument": {
+          "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+          "title": "Instrument",
+          "type": "string"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Quantity"
+        },
+        "vendor_symbol": {
+          "maxLength": 32,
+          "title": "Vendor Symbol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "instrument",
+        "vendor_symbol",
+        "quantity",
+        "avg_price"
+      ],
+      "title": "PositionRecord",
+      "type": "object"
+    },
+    "Side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ],
+      "title": "Side",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Account state from one source with explicit provenance and timestamps.\n\n`account_alias` is a configured label; the broker's account number is never stored.",
+  "properties": {
+    "account_alias": {
+      "pattern": "^[a-z0-9_\\-]{1,32}$",
+      "title": "Account Alias",
+      "type": "string"
+    },
+    "cash": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Cash"
+    },
+    "open_orders": {
+      "items": {
+        "$ref": "#/$defs/OpenOrderRecord"
+      },
+      "title": "Open Orders",
+      "type": "array"
+    },
+    "orders_today": {
+      "minimum": 0,
+      "title": "Orders Today",
+      "type": "integer"
+    },
+    "positions": {
+      "patternProperties": {
+        "^[A-Z][A-Z0-9.\\-]{0,14}$": {
+          "$ref": "#/$defs/PositionRecord"
+        }
+      },
+      "title": "Positions",
+      "type": "object"
+    },
+    "realized_pnl_today": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Realized Pnl Today"
+    },
+    "received_at": {
+      "format": "date-time",
+      "title": "Received At",
+      "type": "string"
+    },
+    "source_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Source Id",
+      "type": "string"
+    },
+    "source_ts": {
+      "format": "date-time",
+      "title": "Source Ts",
+      "type": "string"
+    },
+    "version": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Version"
+    }
+  },
+  "required": [
+    "source_id",
+    "account_alias",
+    "source_ts",
+    "received_at",
+    "cash",
+    "realized_pnl_today",
+    "orders_today"
+  ],
+  "title": "AccountRecord",
+  "type": "object"
+}

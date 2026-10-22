@@ -1,0 +1,14 @@
+# Canonical instrument identifiers and per-source vendor aliases.
+# Unknown vendor symbols are rejected (UNKNOWN_INSTRUMENT), never guessed.
+version: instruments.v1
+instruments:
+  - symbol: AAA
+    asset_class: EQUITY
+    aliases:
+      vendor_a: ["AAA.US", "XNAS:AAA"]
+      broker_a: ["AAA US EQUITY"]
+  - symbol: BBB
+    asset_class: EQUITY
+    aliases:
+      vendor_a: ["BBB.US", "XNYS:BBB"]
+      broker_a: ["BBB US EQUITY"]

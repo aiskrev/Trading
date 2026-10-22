@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "Side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ],
+      "title": "Side",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The only input execution accepts. A valid signature can only come from the RiskGateway.",
+  "properties": {
+    "decision_id": {
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "limit_price": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Limit Price"
+    },
+    "notional": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Notional"
+    },
+    "order_id": {
+      "title": "Order Id",
+      "type": "string"
+    },
+    "proposal_id": {
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "side": {
+      "$ref": "#/$defs/Side"
+    },
+    "signature": {
+      "title": "Signature",
+      "type": "string"
+    },
+    "symbol": {
+      "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+      "title": "Symbol",
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_id",
+    "decision_id",
+    "proposal_id",
+    "symbol",
+    "side",
+    "limit_price",
+    "notional",
+    "issued_at",
+    "signature"
+  ],
+  "title": "ApprovedOrder",
+  "type": "object"
+}

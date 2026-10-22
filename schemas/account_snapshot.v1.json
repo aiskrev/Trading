@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "OpenOrder": {
+      "additionalProperties": false,
+      "properties": {
+        "limit_price": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Limit Price"
+        },
+        "notional": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Notional"
+        },
+        "order_id": {
+          "title": "Order Id",
+          "type": "string"
+        },
+        "side": {
+          "$ref": "#/$defs/Side"
+        },
+        "symbol": {
+          "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+          "title": "Symbol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "order_id",
+        "symbol",
+        "side",
+        "notional",
+        "limit_price"
+      ],
+      "title": "OpenOrder",
+      "type": "object"
+    },
+    "Position": {
+      "additionalProperties": false,
+      "properties": {
+        "avg_price": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Avg Price"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Quantity"
+        },
+        "symbol": {
+          "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+          "title": "Symbol",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "quantity",
+        "avg_price"
+      ],
+      "title": "Position",
+      "type": "object"
+    },
+    "Side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ],
+      "title": "Side",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "as_of": {
+      "format": "date-time",
+      "title": "As Of",
+      "type": "string"
+    },
+    "cash": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Cash"
+    },
+    "equity_high_water": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Equity High Water"
+    },
+    "open_orders": {
+      "items": {
+        "$ref": "#/$defs/OpenOrder"
+      },
+      "title": "Open Orders",
+      "type": "array"
+    },
+    "orders_today": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Orders Today",
+      "type": "integer"
+    },
+    "positions": {
+      "patternProperties": {
+        "^[A-Z][A-Z0-9.\\-]{0,14}$": {
+          "$ref": "#/$defs/Position"
+        }
+      },
+      "title": "Positions",
+      "type": "object"
+    },
+    "realized_pnl_today": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "default": "0",
+      "title": "Realized Pnl Today"
+    },
+    "snapshot_id": {
+      "title": "Snapshot Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "as_of",
+    "cash"
+  ],
+  "title": "AccountSnapshot",
+  "type": "object"
+}

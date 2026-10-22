@@ -1,0 +1,24 @@
+# Example data-source settings. Holds secret NAMES only; values come from the approved
+# secrets manager via SecretsProvider at connect time. Never put credential values here.
+market_data:
+  - source_id: vendor_a
+    role: primary
+    credential_name: MARKET_DATA_VENDOR_A_TOKEN
+    heartbeat_timeout_seconds: 5
+    max_latency_ms: 1500
+    sequence_scope: feed          # feed | instrument
+    backoff: {base_s: 0.5, factor: 2.0, max_s: 30}
+  - source_id: vendor_b
+    role: secondary
+    credential_name: MARKET_DATA_VENDOR_B_TOKEN
+    heartbeat_timeout_seconds: 5
+    max_latency_ms: 1500
+    sequence_scope: instrument
+    backoff: {base_s: 0.5, factor: 2.0, max_s: 30}
+
+account:
+  source_id: broker_a
+  account_alias: main            # label only; the broker account number never appears in config, logs or audit
+  credential_name: BROKER_A_READONLY_TOKEN   # must be a READ-ONLY scoped token
+  max_age_seconds: 5
+  rate_limit: {rate_per_s: 2, capacity: 4}

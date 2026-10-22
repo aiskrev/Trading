@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "Side": {
+      "enum": [
+        "BUY",
+        "SELL"
+      ],
+      "title": "Side",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "format": "date-time",
+      "title": "At",
+      "type": "string"
+    },
+    "fee": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Fee"
+    },
+    "fill_id": {
+      "title": "Fill Id",
+      "type": "string"
+    },
+    "order_id": {
+      "title": "Order Id",
+      "type": "string"
+    },
+    "price": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Price"
+    },
+    "quantity": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "type": "number"
+        },
+        {
+          "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+          "type": "string"
+        }
+      ],
+      "title": "Quantity"
+    },
+    "side": {
+      "$ref": "#/$defs/Side"
+    },
+    "symbol": {
+      "pattern": "^[A-Z][A-Z0-9.\\-]{0,14}$",
+      "title": "Symbol",
+      "type": "string"
+    }
+  },
+  "required": [
+    "fill_id",
+    "order_id",
+    "symbol",
+    "side",
+    "quantity",
+    "price",
+    "fee",
+    "at"
+  ],
+  "title": "Fill",
+  "type": "object"
+}

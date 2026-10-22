@@ -1,0 +1,10 @@
+# Read once at startup into a frozen RuntimeConfig. Nothing in the code can change it.
+mode: BACKTEST
+deployment_id: local-backtest
+code_commit: UNCOMMITTED
+strategy_version: mean-reversion-demo.v1
+risk_policy_version: risk-policy.v2
+model_version: recorded-or-fake
+prompt_versions:
+  trading_planner: v1
+  risk_critic: v1

@@ -1,0 +1,17 @@
+# Changes here require tests AND an explicit production approval (CLAUDE.md "Code changes").
+# Replace the placeholder teams with real reviewers; require 2 approvals on these paths.
+/src/trading_agent/risk/            @REPLACE-ME/risk-owners
+/src/trading_agent/execution/       @REPLACE-ME/risk-owners @REPLACE-ME/execution-owners
+/src/trading_agent/core/signing.py  @REPLACE-ME/risk-owners
+/src/trading_agent/core/mode.py     @REPLACE-ME/risk-owners
+/src/trading_agent/secret_store/    @REPLACE-ME/security
+/config/risk_policy*                @REPLACE-ME/risk-owners
+/config/universe*                   @REPLACE-ME/risk-owners
+/config/restricted*                 @REPLACE-ME/risk-owners @REPLACE-ME/compliance
+/config/risk_config.lock.yaml       @REPLACE-ME/risk-owners
+/config/approvals.yaml              @REPLACE-ME/risk-owners
+/config/instruments*                @REPLACE-ME/risk-owners
+/scripts/lock_risk_config.py        @REPLACE-ME/risk-owners
+/config/runtime*                    @REPLACE-ME/risk-owners
+/prompts/                           @REPLACE-ME/risk-owners
+/CLAUDE.md                          @REPLACE-ME/risk-owners

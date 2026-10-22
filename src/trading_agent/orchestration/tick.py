@@ -1,0 +1,196 @@
+"""One decision cycle: snapshot -> plan -> critique -> risk -> (audit) -> execute -> audit -> reconcile.
+
+Ordering guarantees:
+  * the DECISION record is written BEFORE any submission (write-ahead); if it fails we HALT;
+  * nothing reaches execution except a gateway-minted ApprovedOrder;
+  * every fault path is audited and escalates TradingState per fail_closed.py.
+"""
+from decimal import Decimal
+from typing import Any, Dict, List, NamedTuple, Optional
+
+from typing_extensions import Protocol
+
+from trading_agent.audit.ledger import AuditLedger
+from trading_agent.contracts.account import AccountSnapshot, BrokerAccountView
+from trading_agent.contracts.audit import Attribution, AuditEventType
+from trading_agent.contracts.critic import CriticVerdict
+from trading_agent.contracts.execution import AckStatus, ApprovedOrder, Fill
+from trading_agent.contracts.features import FeatureSet
+from trading_agent.contracts.market import MarketSnapshot
+from trading_agent.contracts.proposal import Decision, OrderProposal
+from trading_agent.contracts.risk import RiskDecision
+from trading_agent.core.clock import Clock
+from trading_agent.core.errors import AuditWriteFailure, DuplicateOrder, ForgedOrder
+from trading_agent.core.mode import RuntimeConfig
+from trading_agent.core.trading_state import TradingState, TradingStateMachine
+from trading_agent.execution.ports import ExecutionPort, ExecutionResult
+from trading_agent.normalization.validators import DataIssue
+from trading_agent.observability.metrics import Metrics
+from trading_agent.orchestration.fail_closed import CONSECUTIVE_REJECTS_BEFORE_REDUCE_ONLY, escalation_for
+from trading_agent.planning.critic import ClaudeCritic
+from trading_agent.planning.planner import ClaudePlanner
+from trading_agent.reconciliation.reconciler import Reconciler
+from trading_agent.risk.gateway import RiskGateway
+
+
+class Book(Protocol):
+    def mark(self, market: MarketSnapshot) -> None: ...
+    def snapshot(self, as_of) -> AccountSnapshot: ...
+    def apply_fill(self, fill: Fill) -> None: ...
+    def record_order(self) -> None: ...
+    def quantities(self) -> Dict[str, Decimal]: ...
+
+
+class TickResult(NamedTuple):
+    proposal: Optional[OrderProposal] = None
+    critic: Optional[CriticVerdict] = None
+    decision: Optional[RiskDecision] = None
+    order: Optional[ApprovedOrder] = None
+    execution: Optional[ExecutionResult] = None
+    skipped: Optional[str] = None
+
+
+class TradingPipeline:
+    def __init__(self, config: RuntimeConfig, planner: ClaudePlanner, critic: Optional[ClaudeCritic],
+                 gateway: RiskGateway, execution: ExecutionPort, ledger: AuditLedger,
+                 state: TradingStateMachine, reconciler: Reconciler, book: Book, clock: Clock,
+                 metrics: Optional[Metrics] = None) -> None:
+        self.config = config
+        self.planner = planner
+        self.critic = critic
+        self.gateway = gateway
+        self.execution = execution
+        self.ledger = ledger
+        self.state = state
+        self.reconciler = reconciler
+        self.book = book
+        self.clock = clock
+        self.metrics = metrics or Metrics()
+        self._consecutive_rejects = 0
+
+    # ------------------------------------------------------------------ public
+    def tick(self, market: MarketSnapshot, features: FeatureSet, data_issues: List[DataIssue] = ()) -> TickResult:
+        now = self.clock.now()
+        self.metrics.inc("ticks")
+        if data_issues:
+            self.metrics.inc("data_issues", len(data_issues))
+            self._audit(AuditEventType.DATA_FAULT, market, details={
+                "reason": ";".join(f"{i.code.value}:{i.symbol or '-'}" for i in data_issues)[:1000]})
+            esc = escalation_for(data_issues)
+            if esc:
+                self._trip(esc[0], esc[1], market)
+        if market.as_of > now:
+            self._trip(TradingState.HALTED, "CLOCK_SKEW:snapshot_after_clock", market)
+        if self.state.state is TradingState.HALTED:
+            self.metrics.inc("ticks_skipped_halted")
+            return TickResult(skipped="HALTED")
+
+        self.book.mark(market)
+        account = self.book.snapshot(now)
+        broker = BrokerAccountView(source_id="execution", as_of=now, positions=self.execution.broker_positions())
+        plan = self.planner.plan(market, account, features)
+        proposal = plan.proposal
+        if plan.failure:
+            self.metrics.inc(f"planner_{plan.failure.lower()}")
+            if not self._audit(AuditEventType.SCHEMA_FAILURE, market, proposal=proposal,
+                               details={"reason": plan.failure}):
+                return TickResult(proposal=proposal, skipped="AUDIT_FAILURE")
+
+        critic = None
+        if proposal.decision is Decision.TRADE and self.critic is not None:
+            critic = self.critic.review(proposal, market, account, self.gateway.policy.summary())
+
+        result = self.gateway.evaluate(proposal, critic, market, account, self.state.state, features, broker)
+        self.metrics.inc(f"risk_{result.decision.verdict.value.lower()}")
+        details = {"proposal_id": proposal.proposal_id}
+        if proposal.symbol and proposal.symbol in market.quotes:
+            details["decision_mid"] = str(market.quotes[proposal.symbol].mid)
+        # Write-ahead: the decision is durable before anything can be submitted.
+        if not self._audit(AuditEventType.DECISION, market, proposal=proposal, critic=critic,
+                           risk_decision=result.decision,
+                           approved_order=result.order.signing_payload() if result.order else None,
+                           broker_result="PENDING_SUBMIT" if result.order else "NOT_SUBMITTED", details=details):
+            return TickResult(proposal, critic, result.decision, skipped="AUDIT_FAILURE")
+        if result.order is None:
+            return TickResult(proposal, critic, result.decision)
+
+        execution = self._submit(result.order, market, proposal)
+        self._reconcile(market)
+        return TickResult(proposal, critic, result.decision, result.order, execution)
+
+    # ----------------------------------------------------------------- helpers
+    def _submit(self, order: ApprovedOrder, market: MarketSnapshot, proposal: OrderProposal):
+        try:
+            execution = self.execution.submit(order)
+        except (ForgedOrder, DuplicateOrder) as exc:
+            self._trip(TradingState.HALTED, f"{type(exc).__name__}", market)
+            return None
+        except Exception as exc:  # unknown broker state => no new risk
+            self._trip(TradingState.HALTED, f"BROKER_ERROR:{type(exc).__name__}", market)
+            return None
+        self.book.record_order()
+        for fill in execution.fills:
+            self.book.apply_fill(fill)
+        broker_result = _broker_result(execution, order)
+        self.metrics.inc(f"broker_{broker_result.lower()}")
+        self._audit(AuditEventType.EXECUTION, market, proposal=proposal, acks=[execution.ack],
+                    fills=execution.fills, broker_result=broker_result,
+                    details={"proposal_id": proposal.proposal_id, "order_id": order.order_id})
+        if execution.ack.status is AckStatus.REJECTED:
+            self._consecutive_rejects += 1
+            if self._consecutive_rejects >= CONSECUTIVE_REJECTS_BEFORE_REDUCE_ONLY:
+                self._trip(TradingState.REDUCE_ONLY, "CONSECUTIVE_BROKER_REJECTS", market)
+        else:
+            self._consecutive_rejects = 0
+        return execution
+
+    def _reconcile(self, market: MarketSnapshot) -> None:
+        report = self.reconciler.reconcile(self.book.quantities(), self.execution.broker_positions())
+        if not report.matched:
+            self.metrics.inc("reconciliation_mismatch")
+            self._audit(AuditEventType.RECONCILIATION, market, details={
+                "reason": "POSITION_MISMATCH",
+                "mismatches": ";".join(f"{m.symbol}:{m.internal}!={m.broker}" for m in report.mismatches)[:1000]})
+            self._trip(TradingState.HALTED, "RECONCILIATION_MISMATCH", market)
+
+    def _trip(self, to: TradingState, reason: str, market: MarketSnapshot) -> None:
+        before = self.state.state
+        if self.state.trip(to, reason, self.clock.now()):
+            self.metrics.inc(f"state_{to.value.lower()}")
+            self._audit(AuditEventType.STATE_CHANGE, market,
+                        details={"reason": reason, "from": before.value, "to": to.value})
+
+    def _audit(self, event_type: AuditEventType, market: MarketSnapshot, proposal: Optional[OrderProposal] = None,
+               broker_result: str = "NOT_SUBMITTED", **fields: Any) -> bool:
+        attribution = Attribution(
+            model_version=proposal.model_version if proposal else self.config.model_version,
+            prompt_version=proposal.prompt_version if proposal else _prompt_versions(self.config),
+            strategy_version=self.config.strategy_version,
+            market_snapshot_id=market.snapshot_id,
+            risk_policy_version=self.gateway.policy.version,
+            code_commit=self.config.code_commit,
+            deployment_id=self.config.deployment_id,
+            broker_result=broker_result,
+        )
+        try:
+            self.ledger.append(at=self.clock.now(), event_type=event_type, trading_state=self.state.state,
+                               attribution=attribution, proposal=proposal, **fields)
+            return True
+        except AuditWriteFailure:
+            # Cannot audit => cannot trade. Escalate directly (the escalation itself cannot be audited).
+            self.metrics.inc("audit_write_failure")
+            self.state.trip(TradingState.HALTED, "AUDIT_WRITE_FAILURE", self.clock.now())
+            return False
+
+
+def _broker_result(execution: ExecutionResult, order: ApprovedOrder) -> str:
+    if execution.ack.status is not AckStatus.ACCEPTED:
+        return execution.ack.status.value
+    if not execution.fills:
+        return "ACCEPTED_NO_FILL_REPORTED"
+    filled = sum(f.quantity * f.price for f in execution.fills)
+    return "FILLED" if filled >= order.notional * Decimal("0.95") else "PARTIAL"
+
+
+def _prompt_versions(config: RuntimeConfig) -> str:
+    return ",".join(f"{k}.{v}" for k, v in sorted(config.prompt_versions.items()))

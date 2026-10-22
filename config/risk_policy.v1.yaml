@@ -1,0 +1,14 @@
+# Deterministic risk limits. Changes require tests + explicit production approval (CODEOWNERS).
+version: risk-policy.v1
+max_snapshot_age_seconds: 5
+max_order_notional: "10000"
+min_order_notional: "100"
+max_position_notional: "25000"
+max_gross_exposure: "50000"
+max_spread_bps: "25"
+price_band_bps: "50"
+daily_loss_limit: "2000"
+max_orders_per_day: 20
+allow_short: false
+critic_required: true
+universe_file: universe.v1.yaml
