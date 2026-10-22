@@ -1,0 +1,10 @@
+dataset_version: synthetic-ca-2026jan.v1
+description: Synthetic 8-day 1-minute AAA/BBB quotes with a 2:1 split, a cash dividend,
+  a delisting while held, a thin-size bar and a market holiday (for testing the backtester
+  only)
+files:
+  corporate_actions.csv: b4f60b1a28c39ab66d5f874ae309bf7ade13e4439ad9e1db17cbab0da08f7733
+  listings.csv: c17c816313e2baee918f6825e00fccbe7391acd29a49af0745f184e555134811
+  quotes.csv: 03710a42d2e188184b0e4123726479e6dbca8244a7b8ddb37ce6fef87d6659d2
+source: scripts/make_dataset.py
+synthetic: true

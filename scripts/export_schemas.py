@@ -52,7 +52,7 @@ def main(argv) -> int:
             if not path.exists() or path.read_text(encoding="utf-8") != text:
                 drift.append(name)
         else:
-            path.write_text(text, encoding="utf-8")
+            path.write_bytes(text.encode("utf-8"))
     if drift:
         print("schema drift: " + ", ".join(drift) + " (run scripts/export_schemas.py)")
         return 1

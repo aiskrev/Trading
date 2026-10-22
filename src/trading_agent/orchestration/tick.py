@@ -118,6 +118,10 @@ class TradingPipeline:
         self._reconcile(market)
         return TickResult(proposal, critic, result.decision, result.order, execution)
 
+    def record_event(self, event_type: AuditEventType, market: MarketSnapshot, details: Dict[str, str]) -> bool:
+        """Audit a non-decision event (e.g. a corporate action applied to the book)."""
+        return self._audit(event_type, market, details=details)
+
     # ----------------------------------------------------------------- helpers
     def _submit(self, order: ApprovedOrder, market: MarketSnapshot, proposal: OrderProposal):
         try:

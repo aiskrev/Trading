@@ -6,7 +6,7 @@ no credentials, no unrestricted order submission.
 
 Read first: [`CLAUDE.md`](CLAUDE.md) (mandatory policy) · [architecture](docs/architecture.md) ·
 [threat model](docs/threat-model.md) · [failure-mode register](docs/failure-mode-register.md) ·
-[ADR 0001](docs/adr/0001-planner-never-executes.md) · [risk gateway](docs/risk-gateway.md) · [planner evaluation](docs/evals/planner-evaluation.md)
+[ADR 0001](docs/adr/0001-planner-never-executes.md) · [risk gateway](docs/risk-gateway.md) · [planner evaluation](docs/evals/planner-evaluation.md) · [backtesting](docs/backtesting.md)
 
 ## Quick start
 

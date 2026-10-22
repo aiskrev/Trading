@@ -21,6 +21,7 @@ class AuditEventType(str, Enum):
     DATA_FAULT = "DATA_FAULT"
     STATE_CHANGE = "STATE_CHANGE"
     RECONCILIATION = "RECONCILIATION"
+    CORPORATE_ACTION = "CORPORATE_ACTION"
 
 
 class Attribution(Contract):

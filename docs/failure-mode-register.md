@@ -65,3 +65,13 @@ reaches a snapshot, so the gateway's NO_QUOTE / freshness rules deny any order t
 | F39 | Released risk config edited / unpinned / mis-named | `load_risk_policy` | Refuse to start | `test_risk_config.py` |
 | F40 | Runtime expects a different policy version | `BacktestEngine` | Refuse to start | `test_runtime_and_policy_versions_must_agree` |
 | F41 | Cap returns NaN / non-Decimal | gateway | DENY (RULE_ERROR) | `test_cap_returning_nan_denies` |
+
+### Backtesting on datasets (see docs/backtesting.md)
+
+| ID | Failure | Detection | Response | Test |
+|---|---|---|---|---|
+| F42 | Dataset file edited after its manifest | `load_dataset` hash check | Refuse to run | `test_dataset_hashes_and_unknown_versions` |
+| F43 | Quotes outside listing period (e.g. after delisting) | `load_dataset` | Refuse to run | `test_quotes_after_delisting_are_rejected` |
+| F44 | Quotes outside the market calendar | `calendar_violations` | Refuse to run | `test_calendar_rules` |
+| F45 | Latency >= bar spacing (fill visible before it happened) | `BacktestEngine.run` | Refuse to run | `test_latency_must_be_below_bar_spacing` |
+| F46 | Placeholder dataset id | `run_dataset.main` | Exit 2 | `test_placeholder_dataset_id_is_refused` |

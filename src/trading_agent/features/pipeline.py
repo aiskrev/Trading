@@ -1,4 +1,5 @@
 from collections import deque
+from decimal import Decimal
 from typing import Deque, Dict, List, Optional
 
 from trading_agent.contracts.features import FeatureSet
@@ -15,6 +16,25 @@ class FeaturePipeline:
         self.feature_version = feature_version
         self._history: Dict[str, Deque[Quote]] = {}
         self._max = max_history
+
+    def adjust_history(self, symbol: str, price_factor: Decimal, size_factor: Decimal = Decimal(1)) -> None:
+        """Point-in-time corporate-action adjustment, applied on the ex-date only.
+
+        Rescales stored past quotes so they are comparable with post-action prices (e.g. a 2:1 split
+        uses price_factor 1/2, size_factor 2). Nothing earlier than the ex-date ever sees this factor.
+        """
+        hist = self._history.get(symbol)
+        if not hist:
+            return
+        q6 = Decimal("0.000001")
+        self._history[symbol] = deque(
+            (Quote(bid=(q.bid * price_factor).quantize(q6), ask=(q.ask * price_factor).quantize(q6),
+                   bid_size=q.bid_size * size_factor, ask_size=q.ask_size * size_factor,
+                   last=(q.last * price_factor).quantize(q6), ts=q.ts) for q in hist), maxlen=self._max)
+
+    def last_mid(self, symbol: str) -> Optional[Decimal]:
+        hist = self._history.get(symbol)
+        return hist[-1].mid if hist else None
 
     def update(self, snapshot: MarketSnapshot) -> FeatureSet:
         values = {}

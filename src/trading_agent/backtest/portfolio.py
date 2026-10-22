@@ -15,6 +15,7 @@ class Portfolio:
         self.realized_pnl = Decimal(0)
         self.orders = 0
         self.equity_high_water = starting_cash
+        self.dividends = Decimal(0)
         self._qty: Dict[str, Decimal] = {}
         self._avg: Dict[str, Decimal] = {}
 
@@ -33,6 +34,29 @@ class Portfolio:
         if self._qty[fill.symbol] == 0:
             del self._qty[fill.symbol]
             self._avg.pop(fill.symbol, None)
+
+    # ------------------------------------------------------------ corporate actions (ex-date, point in time)
+    def apply_split(self, symbol: str, ratio: Decimal) -> None:
+        if symbol in self._qty:
+            self._qty[symbol] *= ratio
+            self._avg[symbol] /= ratio
+
+    def apply_dividend(self, symbol: str, per_share: Decimal) -> Decimal:
+        """Credits cash on the ex-date (pay-date lag not modelled). Returns the amount."""
+        amount = (self._qty.get(symbol, Decimal(0)) * per_share).quantize(Decimal("0.01"))
+        self.cash += amount
+        self.realized_pnl += amount
+        self.dividends += amount
+        return amount
+
+    def delist(self, symbol: str, price: Decimal) -> Decimal:
+        """Closes a delisted position at the delisting price (never silently dropped). Returns P&L."""
+        qty = self._qty.pop(symbol, Decimal(0))
+        avg = self._avg.pop(symbol, Decimal(0))
+        pnl = (price - avg) * qty
+        self.cash += qty * price
+        self.realized_pnl += pnl
+        return pnl
 
     def mark(self, market: MarketSnapshot) -> None:
         """Raise the equity high-water if every position can be marked from this snapshot."""

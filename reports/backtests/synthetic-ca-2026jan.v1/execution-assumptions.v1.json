@@ -1,0 +1,96 @@
+{
+ "dataset_version": "synthetic-ca-2026jan.v1",
+ "execution": {
+  "version": "execution-assumptions.v1",
+  "costs": {
+   "version": "costs.v1",
+   "commission_bps": "1.0",
+   "min_commission": "1.00",
+   "sell_fee_bps": "0.3",
+   "slippage_bps": "2.0"
+  },
+  "latency_ms": 1500,
+  "partial_fills": true,
+  "max_participation": "1.0"
+ },
+ "base": {
+  "days": 8,
+  "fills": 3,
+  "partial_fills": 1,
+  "orders_expired": 0,
+  "turnover": 0.1094569995797248,
+  "dividends": "25.15",
+  "gross": {
+   "basis": "gross",
+   "start_equity": "100000",
+   "end_equity": "99716.058275440000",
+   "pnl": "-283.941724560000",
+   "total_return": -0.0028394172456,
+   "max_drawdown": 0.0028394172456,
+   "daily_mean_return": -0.0003553103207878479,
+   "daily_volatility": 0.0003656742827394547,
+   "sharpe_annualized": -15.424591634118766
+  },
+  "net": {
+   "basis": "net",
+   "start_equity": "100000",
+   "end_equity": "99710.469644512480",
+   "pnl": "-289.530355487520",
+   "total_return": -0.0028953035548752,
+   "max_drawdown": 0.0028953035548752,
+   "daily_mean_return": -0.0003623149576398401,
+   "daily_volatility": 0.00036167205696937453,
+   "sharpe_annualized": -15.90272605895716
+  },
+  "costs": {
+   "traded_notional": "10945.699957972480",
+   "spread_and_slippage": "2.498630927520",
+   "fees": "3.09",
+   "total": "5.588630927520",
+   "cost_bps_of_traded": 5.105777564685965
+  }
+ },
+ "costs_x2": {
+  "days": 8,
+  "fills": 3,
+  "partial_fills": 1,
+  "orders_expired": 0,
+  "turnover": 0.1094569996893,
+  "dividends": "25.15",
+  "gross": {
+   "basis": "gross",
+   "start_equity": "100000",
+   "end_equity": "99716.05818930",
+   "pnl": "-283.94181070",
+   "total_return": -0.002839418107,
+   "max_drawdown": 0.002839418107,
+   "daily_mean_return": -0.0003553104287698927,
+   "daily_volatility": 0.0003656741614537368,
+   "sharpe_annualized": -15.42460143777696
+  },
+  "net": {
+   "basis": "net",
+   "start_equity": "100000",
+   "end_equity": "99707.37235547",
+   "pnl": "-292.62764453",
+   "total_return": -0.0029262764453,
+   "max_drawdown": 0.0029262764453,
+   "daily_mean_return": -0.0003661971140429363,
+   "daily_volatility": 0.0003595897203369663,
+   "sharpe_annualized": -16.166198972750234
+  },
+  "costs": {
+   "traded_notional": "10945.69996893",
+   "spread_and_slippage": "2.50583383",
+   "fees": "6.18",
+   "total": "8.68583383",
+   "cost_bps_of_traded": 7.9353845388191155
+  }
+ },
+ "events": [
+  "2026-01-14 SPLIT AAA 2:1 applied to position and price history",
+  "2026-01-16 CASH_DIVIDEND BBB 0.25/share credited 25.15",
+  "2026-01-21 DELISTED BBB at 46.80: closed 100.583383 shares, P&L -292.70"
+ ],
+ "disclaimer": "BACKTEST research output only. This is not a trade recommendation, and it must not be used to place or size live orders. Past simulated performance does not predict future results."
+}

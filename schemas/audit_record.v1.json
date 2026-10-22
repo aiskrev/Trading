@@ -75,7 +75,8 @@
         "SCHEMA_FAILURE",
         "DATA_FAULT",
         "STATE_CHANGE",
-        "RECONCILIATION"
+        "RECONCILIATION",
+        "CORPORATE_ACTION"
       ],
       "title": "AuditEventType",
       "type": "string"

@@ -1,0 +1,11 @@
+# BACKTEST execution assumptions. Change by adding a new version.
+version: execution-assumptions.v1
+costs:
+  version: costs.v1
+  commission_bps: "1.0"        # per side, on notional
+  min_commission: "1.00"       # per fill
+  sell_fee_bps: "0.3"          # regulatory/exchange fees on sells
+  slippage_bps: "2.0"          # impact beyond the quoted touch
+latency_ms: 1500               # decision -> market; fills use the first quote at or after this time
+partial_fills: true            # fill up to displayed size x max_participation; IOC remainder cancelled
+max_participation: "1.0"

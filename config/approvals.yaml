@@ -18,3 +18,21 @@ approvals:
       hash-pinned versioned config), with tests in tests/invariants and tests/unit/test_risk_config.py.
       Not committed at time of approval (code_commit UNCOMMITTED).
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0002
+    date: 2026-10-22
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "I approve the /execution simulator changes (latency, partial fills, fees, corporate-action book events) for the BACKTEST stage. Record the approval and commit."
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/execution/cost_model.py: de48995e9e698fc9bc77bb35c8a982fd15968a3271b9362ed9e76b24bfb93967
+      src/trading_agent/execution/simulated_broker.py: 5cd24dfdd51e8867637056e1edd34a6671ee6714cf5d585e347e051bd561ff35
+      config/execution_assumptions.v1.yaml: 12a6e52852e4064ec1849bad0fc62293c2638b61836eaa778ea631149df74e59
+    code_scope: >-
+      BACKTEST simulator in src/trading_agent/execution/: decision+latency fills against the first
+      later quote (same day), partial fills capped at displayed size x max_participation (IOC),
+      commission with per-fill minimum and sell-side fees, sells capped at the broker position, and
+      apply_corporate_action (split/delisting book events; places no order). Execution assumptions
+      execution-assumptions.v1. Tests: tests/backtest/test_dataset_backtest.py. Approved before commit;
+      the approving commit is the one that adds this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

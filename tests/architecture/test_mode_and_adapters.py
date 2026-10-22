@@ -73,6 +73,7 @@ def test_execution_port_surface_is_narrow():
     proto = {n for n, _ in inspect.getmembers(ExecutionPort, inspect.isfunction) if not n.startswith("_")}
     assert proto == {"submit", "cancel", "broker_positions"}
     impl = {n for n in dir(SimulatedBroker) if not n.startswith("_")}
-    assert impl == {"submit", "cancel", "broker_positions"}
+    # apply_corporate_action is a broker-side book event for BACKTEST (split/delisting): it places no order
+    assert impl == {"submit", "cancel", "broker_positions", "apply_corporate_action"}
     params = list(inspect.signature(SimulatedBroker.submit).parameters)
     assert params == ["self", "order"]
