@@ -6,7 +6,7 @@ no credentials, no unrestricted order submission.
 
 Read first: [`CLAUDE.md`](CLAUDE.md) (mandatory policy) · [architecture](docs/architecture.md) ·
 [threat model](docs/threat-model.md) · [failure-mode register](docs/failure-mode-register.md) ·
-[ADR 0001](docs/adr/0001-planner-never-executes.md) · [risk gateway](docs/risk-gateway.md)
+[ADR 0001](docs/adr/0001-planner-never-executes.md) · [risk gateway](docs/risk-gateway.md) · [planner evaluation](docs/evals/planner-evaluation.md)
 
 ## Quick start
 
@@ -70,6 +70,7 @@ tests/      architecture/ unit/ invariants/ replay/ fault_injection/ security/
 | AT-18 reconciliation | `tests/fault_injection/test_faults.py` |
 | AT-19 audit | `tests/unit/test_audit.py` |
 | AT-20 evals gate | `tests/unit/test_evals_gate.py` |
+| Planner prompt quality eval (frozen set, sealed holdout) | `tests/evals/test_planner_quality.py` |
 | Read-only market data (malformed, delayed, gaps, reconnect, rate limit) | `tests/market_data/` |
 | Read-only account data | `tests/account_data/` |
 | Adapter secrets never leak | `tests/security/test_adapter_secrets.py` |

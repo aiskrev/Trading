@@ -18,3 +18,6 @@ audit_out/
 *.p12
 secrets*.yaml
 secrets*.json
+
+# Planner eval request exports are reproducible (python -m evals.planner_quality.run export ...)
+evals/planner_quality/requests/
