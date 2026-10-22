@@ -1,0 +1,10 @@
+#!/bin/sh
+# Blocks the push unless the secret scan, risk-config lock check and full test suite pass.
+# Enabled by: git config core.hooksPath .githooks
+for py in py python3 python; do
+    if command -v "$py" >/dev/null 2>&1; then
+        exec "$py" scripts/pre_push_check.py "$@"
+    fi
+done
+echo "[pre-push] BLOCKED: no Python interpreter found to run the checks." >&2
+exit 1

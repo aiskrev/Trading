@@ -68,9 +68,11 @@ def test_lock_tool_refuses_to_repin_a_changed_release(tmp_path):
     shutil.copytree(ROOT / "src", tmp_path / "src")
     policy = tmp_path / "config" / "risk_policy.v2.yaml"
     policy.write_text(policy.read_text(encoding="utf-8") + "\n# edit\n", encoding="utf-8")
-    env_path = str(ROOT / ".deps")
+    import os
+    paths = [str(ROOT / ".deps")] + ([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else [])
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(paths))
     proc = subprocess.run([sys.executable, str(tmp_path / "scripts" / "lock_risk_config.py"), str(policy)],
-                          capture_output=True, text=True, env={"PYTHONPATH": env_path, "SYSTEMROOT": "C:\\Windows"})
+                          capture_output=True, text=True, env=env)
     assert proc.returncode == 1 and "refusing" in proc.stdout
 
 

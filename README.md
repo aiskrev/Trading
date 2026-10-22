@@ -22,6 +22,25 @@ python -m trading_agent.backtest.run    # demo backtest on bundled fixtures
 Without installing, put `src` (and a dependency dir) on `PYTHONPATH`; `pytest` is configured
 to add `src` and `.deps` automatically.
 
+## Auto-push to GitHub
+
+Every commit is pushed to `origin` automatically, but only after a gate passes:
+
+```bash
+git config core.hooksPath .githooks     # once per clone
+```
+
+* `.githooks/post-commit` pushes the current branch after each commit.
+* `.githooks/pre-push` runs `scripts/pre_push_check.py`: secret scan of every commit being pushed
+  (added lines and file names), the risk-config lock check, and the full test suite in a clean
+  temporary worktree of the exact commit. Any failure aborts the push; the commit stays local.
+* Skip the push for one commit: `TRADING_AGENT_NO_AUTOPUSH=1 git commit ...`. Do not use
+  `--no-verify`; it bypasses the secret scan.
+* Authentication is handled by Git Credential Manager (browser sign-in once). Never put a password
+  or token in the remote URL, config, or this repo.
+* Pushing straight to `main` skips pull-request review, so CODEOWNERS review does not apply. The
+  enforced gate for risk changes is `config/approvals.yaml` (checked at startup).
+
 ## Layout
 
 ```

@@ -8,7 +8,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_import_linter_contracts_hold():
-    env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(ROOT / "src"), str(ROOT / ".deps")]))
+    paths = [str(ROOT / "src"), str(ROOT / ".deps")] + ([os.environ["PYTHONPATH"]] if os.environ.get("PYTHONPATH") else [])
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(paths))
     proc = subprocess.run(
         [sys.executable, "-c", "import sys; from importlinter.cli import lint_imports; "
                                "sys.exit(lint_imports(no_cache=True))"],

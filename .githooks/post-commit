@@ -1,0 +1,20 @@
+#!/bin/sh
+# Auto-push the current branch to origin after every commit.
+# The pre-push hook runs first and aborts the push if secrets, risk config or tests fail;
+# the commit always stays local. Skip once with: TRADING_AGENT_NO_AUTOPUSH=1 git commit ...
+[ "$TRADING_AGENT_NO_AUTOPUSH" = "1" ] && exit 0
+git remote get-url origin >/dev/null 2>&1 || exit 0
+branch=$(git symbolic-ref --short -q HEAD) || exit 0          # detached HEAD: nothing to push
+for d in rebase-merge rebase-apply; do
+    [ -d "$(git rev-parse --git-path "$d")" ] && exit 0      # mid-rebase: push when finished
+done
+echo "[auto-push] pushing $branch to origin ..."
+if git push --quiet origin "$branch"; then
+    git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 || \
+        git branch --quiet --set-upstream-to="origin/$branch" "$branch" 2>/dev/null
+    echo "[auto-push] $branch is in sync with origin."
+else
+    echo "[auto-push] push did not happen (see messages above). Commit is kept locally;" >&2
+    echo "[auto-push] fix the problem and commit again, or run: git push origin $branch" >&2
+fi
+exit 0
