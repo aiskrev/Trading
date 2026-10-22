@@ -52,10 +52,12 @@ the reply or the key (tested with markers).
 
 ## Running it for real (owner, in a terminal; this spends money)
 
-Needs Python >= 3.10 (the `anthropic` 1.x requirement; the WSL Ubuntu has 3.12) and the vault.
+Needs Python 3.12 (the project's floor; `anthropic` 1.x itself needs >= 3.10), the hash-locked model dependencies, and
+the vault.
 
 ```bash
-~/venvs/trading/bin/pip install "anthropic>=1,<2"
+~/venvs/trading/bin/pip install --require-hashes -r requirements/model.lock
+~/venvs/trading/bin/pip install --no-deps -e .
 ~/venvs/trading/bin/python scripts/vault.py put-secret anthropic-api-key
 ~/venvs/trading/bin/python scripts/vault.py grant model-client --read anthropic-api-key
 export TRADING_VAULT_TOKEN=...   # the token printed once by `grant`
@@ -72,4 +74,4 @@ The holdout split is refused by the script.
   Roadmap P2 acceptance test 4 stays open until it does.
 * `prompts/trading_planner.v1.md` still says "data returned by approved tools"; the candidate `v2` removes it and
   already handles `evaluation_time`. Choosing a prompt needs the evaluation and an owner approval.
-* The `anthropic` dependency is declared as an optional extra (`model`); it is not hash-locked yet (before PAPER).
+* The `anthropic` dependency is an optional extra (`model`) and is hash-locked in `requirements/model.lock`.

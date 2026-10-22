@@ -18,9 +18,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev]"
+      - name: Install hash-locked dependencies (any mismatch fails the job)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements/dev.lock
+          pip install --no-deps -e .
+          pip check
       - name: Secret scan (repo + history)
         uses: gitleaks/gitleaks-action@v2
+      - name: Bill of materials matches the lock
+        run: python scripts/make_sbom.py --check
       - name: Architecture boundaries (AT-01)
         run: lint-imports
       - name: Schema drift (AT-05)

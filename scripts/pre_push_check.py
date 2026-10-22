@@ -128,6 +128,9 @@ def main(stdin_lines: List[str]) -> int:
 
 
 def _main(stdin_lines: List[str]) -> int:
+    if sys.version_info < (3, 12):
+        print(f"[pre-push] WARNING: running under Python {sys.version_info[0]}.{sys.version_info[1]}; the project targets 3.12 "
+              "(requirements/README.md). CI and the WSL environment test on 3.12.")
     refs = [l.split() for l in stdin_lines if l.strip()]
     pushes = [(ls, rs) for _, ls, _, rs in refs if ls != ZERO]  # ignore branch deletions
     if not pushes:

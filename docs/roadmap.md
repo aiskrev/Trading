@@ -25,7 +25,7 @@ P9 CANARY_LIVE <-- P8 failover <-- P7 observ. <-- P6 PAPER <-- P5 key separation
 
 ## P0: BACKTEST skeleton (done)
 
-Evidence: 415 tests, approvals APR-0001/2/3, gateway, adapters (mock), DecisionPackets, live loop on mock feeds.
+Evidence at the end of P0: 415 tests, approvals APR-0001/2/3, gateway, adapters (mock), DecisionPackets, live loop on mock feeds. (Now: 555+ tests, approvals APR-0001..0008, see session-handoff.md.)
 
 ## P1: Decisions **[owner]**
 

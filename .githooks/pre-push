@@ -1,7 +1,11 @@
 #!/bin/sh
 # Blocks the push unless the secret scan, risk-config lock check and full test suite pass.
 # Enabled by: git config core.hooksPath .githooks
-for py in py python3 python; do
+# The project targets Python 3.12: prefer it, fall back to whatever exists (the gate prints a warning then).
+if command -v py >/dev/null 2>&1 && py -3.12 -c "" >/dev/null 2>&1; then
+    exec py -3.12 scripts/pre_push_check.py "$@"
+fi
+for py in python3.12 py python3 python; do
     if command -v "$py" >/dev/null 2>&1; then
         exec "$py" scripts/pre_push_check.py "$@"
     fi

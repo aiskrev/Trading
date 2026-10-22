@@ -25,6 +25,11 @@ deterministic risk gateway.
 | APR-0001 | risk-policy.v2 + restricted.v1 | BACKTEST |
 | APR-0002 | simulator code + execution-assumptions.v1 | BACKTEST |
 | APR-0003 | strategy mean-reversion-demo.v1 + trigger code | BACKTEST |
+| APR-0004 | in-house vault (secrets + sign-only keys) | BACKTEST |
+| APR-0005 | `ApprovedOrder` v2 (Ed25519), `OrderVerifier`, simulator change | BACKTEST |
+| APR-0006 | durable idempotency store, `client_order_id`, simulator/port changes | BACKTEST |
+| APR-0007 | model client, `evaluation_time`, eval set planner-eval.v2 | BACKTEST |
+| APR-0008 | Anthropic Messages transport, thinking-block tolerance, model eval script | BACKTEST |
 
 Editing an approved file removes its approval (hash mismatch); a new version needs a new entry.
 

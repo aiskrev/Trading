@@ -30,7 +30,7 @@ Review this document whenever a module crosses a trust boundary or a new mode is
 | T2 | Hallucinated prices, positions or news | TB2 | A1 | Evidence refs must resolve in snapshots; price band vs mid; TRADE must cite its quote | AT-07, AT-10, eval P09 |
 | T3 | Malformed / smuggled output (prose, extra fields, dup keys, NaN) | TB2 | A1 | `parse_strict`: single JSON object, no dup keys, no non-finite numbers, `extra="forbid"` | AT-06, evals P07/P08/P11 |
 | T4 | Forged or tampered order bypassing the gateway | TB3 | A1 | Ed25519-signed `ApprovedOrder` v2 bound to environment/account/epoch/policy/TTL; execution holds public keys only (`OrderVerifier`); planner cannot import signer | AT-01, AT-12, `tests/invariants/test_order_signing.py` |
-| T5 | Order replay / duplicate submission | TB3 | A1 | Execution tracks seen `order_id`s; duplicate ⇒ HALTED; duplicate-symbol open-order rule | AT-12 |
+| T5 | Order replay / duplicate submission | TB3 | A1 | `order_id` recorded durably (hash-chained, fsynced) before processing; reuse ⇒ DuplicateOrder ⇒ HALTED, also after a restart; 5 s order lifetime; `client_order_id` derived from the order; duplicate-symbol open-order rule | AT-12, `tests/invariants/test_idempotency.py` |
 | T6 | Critic raising size, flipping side or overriding DENY | TB2 | A1 | `CriticBody` has no side/symbol fields; REDUCE is an upper bound; critic DENY is a gate failure; critic failure ⇒ DENY | AT-11, evals C01–C05 |
 | T7 | Mode escalation (BACKTEST → live) | TB5 | A4 | Frozen `RuntimeConfig`; no setter; startup refuses non-BACKTEST; registry has only `SimulatedBroker`; CODEOWNERS on mode/registry | AT-02, AT-03 |
 | T8 | Credential leakage (prompts, logs, tests, git) | TB5 | A2 | No credentials needed or present; `SecretsProvider` stub raises; log redaction; repo secret scan + gitleaks in CI/pre-commit; `.gitignore` for key files | AT-04 |
@@ -39,7 +39,7 @@ Review this document whenever a module crosses a trust boundary or a new mode is
 | T11 | Stale data / clock skew | TB1 | A1 | Freshness rule on snapshots and quotes; future-dated data ⇒ HALTED | AT-10, AT-14 |
 | T12 | Audit tampering or loss | — | A5 | Hash-chained records; write-ahead DECISION record; audit failure ⇒ HALTED | AT-19, AT-14 |
 | T13 | Martingale / revenge trading after losses | TB2 | A1 | Static limits; daily loss limit blocks new risk; no loss-scaled sizing exists | AT-13 |
-| T14 | Dependency / supply-chain compromise | TB5 | all | Minimal deps (pydantic, pyyaml); pin + hash-lock before any non-BACKTEST stage (open item) | — |
+| T14 | Dependency / supply-chain compromise | TB5 | all | Few deps; every package pinned to an exact version with SHA-256 hashes (`requirements/*.lock`, installed with `--require-hashes` in CI); SBOM generated from the lock; pydantic pinned to the minor that generates the committed schemas. Open: CI actions pinned to tags, not SHAs; `pip-audit` | `tests/security/test_dependency_lock.py` |
 | T15 | Rule bug throws ⇒ order slips through | — | A1 | Every rule/cap wrapped; exception ⇒ RULE_ERROR ⇒ DENY | AT-09 |
 
 ### Read-only data adapters
@@ -51,12 +51,12 @@ Review this document whenever a module crosses a trust boundary or a new mode is
 | T18 | Hostile/garbled vendor payloads (oversize, NaN, dup keys, unknown symbols) | TB1 | A1 | Size cap, strict JSON, `extra="forbid"` wire models, registry-only symbols, all-or-nothing account decode | `test_md_decoder.py`, `test_account_adapter.py` |
 | T19 | Replayed / delayed / reordered data presented as current | TB1 | A1 | Latency cap, future-timestamp cap, sequence tracking, monotonic account version, max-age freshness | `test_md_streaming.py` |
 | T20 | Reconnect storm / rate-limit ban | TB4 | availability | Equal-jitter exponential backoff, Retry-After honoured, client token bucket | `test_md_primitives.py`, `test_rate_limit_*` |
-| T21 | Premature real network code | TB5 | A1, A2 | No module may import socket/ssl/http/urllib/requests/websockets…; execution stays `SimulatedBroker` only | `test_no_network_code.py` |
+| T21 | Premature real network code | TB5 | A1, A2 | No module may import socket/ssl/http/urllib/requests/websockets/anthropic… except the one allow-listed model transport (`model_client/anthropic_transport.py`: key only via `SecretsProvider`, no tools, no `base_url`); execution stays `SimulatedBroker` only | `test_no_network_code.py`, `tests/model_client/` |
 
 ## Open items before PAPER
 
-1. Hash-locked dependency lockfile and SBOM (T14).
-2. Real `SecretsProvider` against the approved secrets manager, with tests proving values never reach logs/prompts (T8).
+1. ~~Hash-locked dependency lockfile and SBOM (T14).~~ Done: `requirements/*.lock`, `requirements/sbom.cdx.json`. Remaining: SHA-pin the CI actions; add `pip-audit`.
+2. ~~Real `SecretsProvider` against the approved secrets manager~~ Done for the vault (`VaultSecretsProvider`, used by `scripts/run_model_eval.py`). To do: wire it into the data and broker adapters, with tests proving values never reach logs/prompts (T8).
 3. Broker adapter threat review: least-privilege API scopes, no withdrawal permission, IP allow-listing (TB4).
 4. Kill-switch operated outside the process (T7/T12).
 5. Structured invalidation conditions so the auditor can evaluate them (section 7 of the audit).

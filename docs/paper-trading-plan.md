@@ -1,6 +1,8 @@
 # PAPER trading plan (proposed, not active)
 
 > **Superseded in part (proposed):** the vendor recommendation and ordering below predate ADR 0002. See [roadmap.md](roadmap.md) and [ADR 0002](adr/0002-target-architecture-and-promotion-path.md); this file stays as the record of the PAPER session design and drills.
+>
+> **Meaning of PAPER differs:** this file defines PAPER as live market data with **simulated** fills and no execution credentials (which the roadmap now calls SHADOW plus a simulator). In the roadmap, PAPER is orders sent to a broker's **paper** API, which needs paper credentials in the vault and the P5 key-separation work first. The session design, drills and acceptance table below apply to both.
 
 The system runs in **BACKTEST**. Nothing here changes the mode: per CLAUDE.md only the owner can,
 after approving the steps below. PAPER = live market data, simulated fills, **no execution
@@ -67,14 +69,14 @@ Acceptance (all must hold before discussing any next mode):
    * a market-data transport module for the chosen vendor: the one allowed exception to
      `tests/architecture/test_no_network_code.py`, market data only;
    * a new risk policy version with real symbols (instrument registry + universe), pinned and approved;
-   * `/execution`: map PAPER -> SimulatedBroker in the registry and add `SimulatedBroker.restore_positions`
-     (the live loop currently restores the simulator's book through a documented internal helper);
+   * `/execution`: map PAPER -> SimulatedBroker in the registry (`SimulatedBroker.restore_positions` and the order-book
+     restore now exist, APR-0006);
    * widening `PERMITTED_MODES_THIS_STAGE` to include PAPER, and an approval entry for PAPER.
 4. Change the runtime mode to PAPER yourself.
 
 ## Known limits of the loop today
 
-* Paper fills use the quote at decision time (+ slippage, displayed-size partials); a fill-on-next-quote
-  latency model needs an /execution change.
+* Paper fills use the first quote at or after decision time + latency (`execution-assumptions.v1`, APR-0002), capped by
+  displayed size (partial fills); there is still no queue-position or market-impact model.
 * After a restart, feature history restarts empty (about 10 bars of warm-up with no signals), and the
   gateway's per-minute order window restarts (the session is REDUCE_ONLY by then).

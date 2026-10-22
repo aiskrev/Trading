@@ -31,10 +31,20 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
 * Latest commits: (APR-0008) Anthropic transport / eval script · 298d69a model client / eval v2 · a7957d5 idempotency · 5ecb906 Ed25519 order signing · 66d25f8 vault · 0ea3fde ADRs/roadmap · d4fc753 evaluation gate · 6a52cfe PAPER readiness ·
   e943c77 dataset backtest · 7bb4c4f push-gate fix · a0a7fd4 planner eval · 41321c3 auto-push.
   Working tree clean; local == GitHub.
-* Environment: Windows, **Python 3.9 32-bit** only. Dependencies are in `.deps/` (git-ignored; reinstall with
-  `py -m pip install --target .deps pydantic pyyaml pytest hypothesis import-linter tzdata "cryptography==48.0.1"`).
-  Run anything with `PYTHONPATH="src;.deps"`. Tests: `PYTHONPATH="src;.deps" py -m pytest -p no:cacheprovider -o addopts="" -q`
-  (**555 pass**, ~75 s).
+* Environment: the project targets **Python 3.12** (`requires-python >=3.12`, CI on 3.12). Dependencies are hash-locked in
+  `requirements/{runtime,model,dev}.lock` (+ `sbom.cdx.json`); install with `pip install --require-hashes -r
+  requirements/dev.lock` then `pip install --no-deps -e .` (see `requirements/README.md`). Verified: the full suite passes
+  on Python 3.12.15 / Linux from a fresh hash-locked venv. **WSL has two distros:** `Ubuntu-22.04` (the owner's real
+  vault in `~/.trading-agent`, clone `~/trading-agent`, venv `~/venvs/trading` currently Python **3.10** - recreate it
+  with `python3.12 -m venv`, which that distro has) and `Ubuntu` (24.04, system Python 3.12.3 but no `python3-venv` yet).
+  **Windows still has only Python 3.9 32-bit**, so the auto-push gate (`.githooks/pre-push`, prefers `py -3.12`) runs under
+  3.9 with a printed warning and the git-ignored `.deps/` (old unlocked pydantic 2.13.5 etc.). After installing Windows
+  Python 3.12, rebuild it: `py -3.12 -m pip install --require-hashes --target .deps -r requirements/dev.lock`.
+  Windows 3.9 command: `PYTHONPATH="src;.deps" py -m pytest -p no:cacheprovider -o addopts="" -q`
+  (**567 pass**, ~75 s). In a WSL copy of the tree without `.git`, `test_cli_flow_and_refusals` blocks on a password
+  prompt (it relies on the `.git` directory to refuse a vault path inside the repo): `git init` the copy.
+  **pydantic is pinned to 2.13.x**: 2.14 changes the generated JSON Schemas (drops Decimal string patterns) and trips
+  the schema-drift test; upgrade it deliberately and regenerate `schemas/`.
 
 ## 3. Enforcement already in place
 

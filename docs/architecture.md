@@ -32,21 +32,23 @@ secondary source (optional)    ─┴─> Normalizer ──> MarketSnapshot (fro
 
 | Package | Responsibility | May import |
 |---|---|---|
-| `core` | types, frozen `RuntimeConfig`/`Mode`, `TradingState`, clock, hashing, `OrderSigner` | — |
+| `core` | types, frozen `RuntimeConfig`/`Mode`, `TradingState`, clock, hashing, Ed25519 order signing (`EphemeralSigner`, `TrustedKey`) | — |
 | `contracts` | every cross-module message as a frozen, `extra="forbid"` pydantic model | `core` |
 | `market_data` | raw ticks, CSV source, instrument registry, streaming adapter, decoder, backoff, rate limit, sequence, quote book | `contracts`, `core`, `observability` |
 | `account_data` | read-only REST account adapter, GET-only HTTP client | `market_data`, `contracts`, `core`, `observability` |
 | `normalization` | validate ticks, cross-source divergence, build `MarketSnapshot` | `market_data`, `contracts` |
 | `features` | point-in-time features, no look-ahead | `contracts` |
-| `planning` | Claude planner + critic, strict output parsing, offline LLM clients | `contracts`, `core` (not signing) |
-| `risk` | policy + ordered pure rules + caps, mints signed `ApprovedOrder` | `contracts`, `core` |
-| `execution` | adapter registry (BACKTEST → `SimulatedBroker` only), cost model | `contracts`, `core` |
+| `planning` | Claude planner (payload carries `evaluation_time`) + critic, strict output parsing, offline LLM clients | `contracts`, `core` (not signing) |
+| `strategy` | versioned strategy definitions and deterministic triggers; no LLM, risk or execution | `contracts`, `core` |
+| `model_client` | the only model call: `SdkLLMClient` over a tools-free `ModelTransport`; `AnthropicMessagesTransport` (key via `SecretsProvider`) | `contracts`, `core`, `observability`, `secret_store.ports` |
+| `risk` | policy + ordered pure rules + caps, mints Ed25519-signed `ApprovedOrder` v2 through the `Signer` port | `contracts`, `core`, `secret_store.ports` |
+| `execution` | adapter registry (BACKTEST → `SimulatedBroker` only), cost model, `OrderVerifier` (public keys only), durable `IdempotencyStore` + `client_order_id` | `contracts`, `core`, `audit` |
 | `reconciliation` | internal vs broker positions | `contracts` |
 | `audit` | hash-chained ledger, post-trade auditor | `contracts`, `core` |
 | `orchestration` | one decision cycle, fail-closed escalation | everything above |
 | `backtest` | timeline replay, portfolio, engine, CLI | everything above |
 | `observability` | redacting logger, metrics, tracing | — |
-| `secret_store` | `SecretsProvider` port; stage-1 provider always raises | `core` |
+| `secret_store` | `SecretsProvider`/`Signer` ports; the in-house vault (imported only by composition roots such as `scripts/`) | `core` |
 
 Boundaries are enforced by `import-linter` contracts in `pyproject.toml` (AT-01).
 

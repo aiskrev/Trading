@@ -106,3 +106,18 @@ reaches a snapshot, so the gateway's NO_QUOTE / freshness rules deny any order t
 | F60 | Wrong passphrase / modified or corrupted vault file | MAC and AES-GCM tag | refuse to open | `test_passphrase_is_never_stored_and_wrong_one_fails`, `test_ciphertext_bit_flip_is_detected` |
 | F61 | Access log unwritable or tampered | `ChainedLog` | deny access / refuse to open | `test_access_is_refused_when_...`, `test_tampered_access_log_refuses_to_open` |
 | F62 | Expired, not-yet-valid or revoked signing key | validity window + revoked flag | deny signing | `test_key_validity_window_and_revocation`, `test_revoked_key_cannot_sign` |
+
+### Order signing, idempotency and the model client (see ADR 0003, docs/model-client.md)
+
+| ID | Failure | Detection | Response | Test |
+|---|---|---|---|---|
+| F63 | Order with unknown/revoked key, bad signature, changed field | `OrderVerifier` (Ed25519 over every field) | refuse (`OrderRefused` reason code) => HALTED, audited | `test_any_single_changed_field_fails`, `test_unknown_key`, `test_revoked_key` |
+| F64 | Expired, future-dated or too-long-lived order | `issued_at`/`expires_at` window, 1 s early skew, 10 s cap | refuse => HALTED | `test_expired_order`, `test_order_from_the_future`, `test_lifetime_longer_than_the_hard_maximum` |
+| F65 | Order for another environment/account, stale leader epoch, unapproved policy hash | bindings in the signed payload | refuse => HALTED | `test_wrong_environment`, `test_wrong_account`, `test_stale_epoch`, `test_unapproved_policy` |
+| F66 | Same order sent twice (retry, replay, restart) | durable `IdempotencyStore` written before processing | `DuplicateOrder` => HALTED | `test_records_survive_a_restart_and_block_replay` |
+| F67 | Idempotency record cannot be written | `AuditWriteFailure` before any state change | order not sent | `test_unwritable_store_means_the_order_is_not_sent` |
+| F68 | Crash between record and send, or after send before close | RESERVED record left behind | restart settles by broker lookup (RESOLVED, or ABANDONED after expiry); otherwise or on lookup failure HALTED `UNRESOLVED_ORDER` | `test_crash_between_record_and_send_never_sends_twice`, `test_crash_after_send_before_close_is_resolved_by_broker_lookup`, `tests/live/test_live_idempotency.py` |
+| F69 | Model times out, rate-limits, 5xx, auth failure | `SdkLLMClient` mapping | `LLMUnavailable` => NO_TRADE `LLM_UNAVAILABLE` (critic: DENY) | `test_planner_gets_no_trade_with_the_right_code`, `tests/model_client/test_anthropic_transport.py` |
+| F70 | Reply has a tool-use/other non-text block, no or several text blocks, is cut off or refused | strict reply validation | `SchemaFailure` => NO_TRADE | `test_anything_but_one_complete_text_block_is_a_schema_failure` |
+| F71 | A different model answers than the pinned one | reply `model` vs pinned id | `ModelVersionMismatch` => NO_TRADE `MODEL_FAILURE` | `test_a_different_answering_model_is_refused` |
+| F72 | Locked dependency changed, unhashed or missing | `pip --require-hashes`, lock tests | CI/test failure | `tests/security/test_dependency_lock.py` |
