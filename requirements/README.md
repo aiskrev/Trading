@@ -10,7 +10,7 @@ Every package that can run is pinned to an exact version **and** its SHA-256 has
 | `dev.lock` | runtime + pytest, hypothesis, import-linter | tests, CI, the pre-push gate |
 | `sbom.cdx.json` | CycloneDX 1.5 bill of materials generated from `model.lock` | review and audit |
 
-Python **3.12**. The project is developed and tested on Linux (WSL) and in CI on 3.12.
+Python **3.12** is the floor and the CI version. The same locks are verified to install and pass the whole suite on 3.12.15 and 3.14.4 (Ubuntu 26.04 ships 3.14 and no 3.12 package).
 
 ## Install
 

@@ -34,9 +34,13 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
 * Environment: the project targets **Python 3.12** (`requires-python >=3.12`, CI on 3.12). Dependencies are hash-locked in
   `requirements/{runtime,model,dev}.lock` (+ `sbom.cdx.json`); install with `pip install --require-hashes -r
   requirements/dev.lock` then `pip install --no-deps -e .` (see `requirements/README.md`). Verified: the full suite passes
-  on Python 3.12.15 / Linux from a fresh hash-locked venv. **WSL has two distros:** `Ubuntu-22.04` (the owner's real
-  vault in `~/.trading-agent`, clone `~/trading-agent`, venv `~/venvs/trading` currently Python **3.10** - recreate it
-  with `python3.12 -m venv`, which that distro has) and `Ubuntu` (24.04, system Python 3.12.3 but no `python3-venv` yet).
+  on Python 3.12.15 / Linux from a fresh hash-locked venv. **WSL (3.0.3, kernel 6.18) has two distros, both upgraded to
+  Ubuntu 26.04.1 LTS on 2026-10-22 (system Python 3.14.4):** `Ubuntu-22.04` (the name is historical; it holds the owner's
+  real vault in `~/.trading-agent`, the clone `~/trading-agent` and the venv `~/venvs/trading`, rebuilt from the hash
+  locks on 3.14.4) and `Ubuntu` (empty, same release). A full snapshot of the distro from before the upgrade is in
+  `D:\Backups\ubuntu-22.04-before-upgrade-20261022.tar` (restore with `wsl --import`; contains the encrypted vault).
+  The whole suite, import-linter, schema, SBOM, risk-lock and eval checks pass on Python 3.12.15 and on 3.14.4 using the
+  same hash-locked files; CI stays on 3.12. `wsl -d <distro> -u root` gives root without a password (used for upgrades).
   **Windows still has only Python 3.9 32-bit**, so the auto-push gate (`.githooks/pre-push`, prefers `py -3.12`) runs under
   3.9 with a printed warning and the git-ignored `.deps/` (old unlocked pydantic 2.13.5 etc.). After installing Windows
   Python 3.12, rebuild it: `py -3.12 -m pip install --require-hashes --target .deps -r requirements/dev.lock`.
