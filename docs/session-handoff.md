@@ -1,4 +1,4 @@
-# Session handoff (state as of the APR-0008 commit, after 66d25f8)
+# Session handoff (state as of the control-room commit, after APR-0008 and 66d25f8)
 
 Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE.md and docs/roadmap.md first".
 
@@ -45,10 +45,21 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   3.9 with a printed warning and the git-ignored `.deps/` (old unlocked pydantic 2.13.5 etc.). After installing Windows
   Python 3.12, rebuild it: `py -3.12 -m pip install --require-hashes --target .deps -r requirements/dev.lock`.
   Windows 3.9 command: `PYTHONPATH="src;.deps" py -m pytest -p no:cacheprovider -o addopts="" -q`
-  (**567 pass**, ~75 s). In a WSL copy of the tree without `.git`, `test_cli_flow_and_refusals` blocks on a password
+  (**606 pass**, ~85 s; also passes on Linux Python 3.14.4). In a WSL copy of the tree without `.git`, `test_cli_flow_and_refusals` blocks on a password
   prompt (it relies on the `.git` directory to refuse a vault path inside the repo): `git init` the copy.
   **pydantic is pinned to 2.13.x**: 2.14 changes the generated JSON Schemas (drops Decimal string patterns) and trips
   the schema-drift test; upgrade it deliberately and regenerate `schemas/`.
+
+* **Control room** (`ui/`, started with `ui\start.cmd` or `python -m ui`, http://127.0.0.1:8765/): local, read-mostly web UI,
+  standard library only. Pages: overview (approvals checked live against file hashes), decisions (DecisionPackets, risk rules,
+  read-only hash-chain checks), backtests, model and evals (scenario explorer; paid runs stay in a terminal), approvals and
+  rules, checks (runs the standing checks), docs. It cannot change the mode, config, approvals, prompts, kill switch or
+  secrets, cannot place orders or call the model, listens on 127.0.0.1 only (Host/Origin checks, per-start token for its single
+  POST, strict CSP) and starts only 8 fixed jobs with a cleaned environment. 39 tests in `tests/ui/` (threats T30-T37).
+  `python -m ui.make_demo_run` creates `runs/demo-live` on mock feeds. Not an approval-gated area (no /risk, /execution,
+  credentials, live deployment or broker permissions): no approval entry. Possible next UI steps: a set-only kill-switch
+  button (would change the documented rule that nothing in code creates `ops/KILL_SWITCH`; needs the owner's decision),
+  a live view of a running loop, showing the WSL runs via `--runs-dir \\wsl.localhost\...`.
 
 ## 3. Enforcement already in place
 

@@ -32,6 +32,7 @@
 /.githooks/                                    @aiskrev
 /.github/                                      @aiskrev
 /requirements/                                 @aiskrev
+/ui/                                           @aiskrev
 /pyproject.toml                                @aiskrev
 /prompts/                                      @aiskrev
 /CLAUDE.md                                     @aiskrev

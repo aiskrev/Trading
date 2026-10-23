@@ -27,6 +27,18 @@ python -m trading_agent.backtest.run    # demo backtest on bundled fixtures
 `pytest` is configured to add `src` to the path. (A Windows checkout may still use the git-ignored `.deps/` directory
 with Python 3.9 for the push gate until Python 3.12 is installed there; CI and WSL run 3.12.)
 
+## Control room (local web UI)
+
+```bash
+ui\start.cmd                    # Windows
+~/venvs/trading/bin/python -m ui   # Linux / WSL
+```
+
+Opens <http://127.0.0.1:8765/>: system overview, every decision of a run with its risk rules and hash-chain checks, backtests,
+planner-evaluation results, approvals checked against file hashes, the standing checks one click away, and the docs.
+Read-mostly and loopback-only: it cannot change the mode, a config, an approval or a secret, place an order or call the model.
+See [`ui/README.md`](ui/README.md).
+
 ## Auto-push to GitHub
 
 Every commit is pushed to `origin` automatically, but only after a gate passes:
@@ -57,6 +69,7 @@ src/trading_agent/
   execution/ reconciliation/ audit/ backtest/ orchestration/ observability/ secret_store/ testing/
 evals/      guardrail regression cases (planner + critic) and the planner-quality eval (planner_quality/)
 requirements/  hash-locked dependencies (runtime, model, dev) and the SBOM
+ui/         the control room: local, read-mostly web UI (standard library only)
 scripts/    operator tools: vault.py, run_model_eval.py, lock_risk_config.py, export_schemas.py, make_sbom.py
 tests/      architecture/ unit/ invariants/ replay/ fault_injection/ security/ live/ model_client/ evals/ backtest/
 ```
@@ -85,6 +98,7 @@ tests/      architecture/ unit/ invariants/ replay/ fault_injection/ security/ l
 | Order signing, idempotency, restart recovery | `tests/invariants/test_order_signing.py`, `tests/invariants/test_idempotency.py`, `tests/live/test_live_idempotency.py` |
 | Model client (fake SDK), eval script | `tests/model_client/` |
 | Hash-locked dependencies, SBOM, CI install | `tests/security/test_dependency_lock.py` |
+| Control room: loopback only, headers, token, no writes/orders/model/vault, path safety | `tests/ui/` |
 
 ## Promotion
 
