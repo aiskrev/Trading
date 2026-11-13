@@ -91,6 +91,16 @@ Review this document whenever a module crosses a trust boundary or a new mode is
 | T46 | TLS private keys end up in git or logs | dev PKI and the service refuse paths inside a work tree; the dev CA key is never written; nothing logs key material | `test_keys_are_never_written_inside_the_repository`, `test_dev_pki_works_end_to_end_and_never_writes_the_ca_key` |
 | T47 | A compromised orchestrator lies about prices or positions (option A) | **open**: snapshots are content-hashed and bound into the signed order (attributable afterwards); option B (service reads its own data) before PAPER | none yet |
 
+### Alpaca data path (roadmap P3, see docs/alpaca.md)
+
+| ID | Threat | Controls | Test |
+|---|---|---|---|
+| T48 | Data adapter used to send orders or reach the live account | WebSocket sends only auth and subscribe; HTTPS transport is GET-only with a two-path allow-list (clock, assets); the only host is the paper host | `test_the_alpaca_data_path_is_read_only_and_host_pinned`, `test_only_allow_listed_paths_and_symbols_are_requested`, `test_the_https_transport_only_reaches_the_paper_host` |
+| T49 | Man-in-the-middle or DNS spoof feeds fake prices | TLS with system trust store and hostname check; host allow-lists; no proxy, no redirects | `test_the_transport_only_talks_to_alpaca_hosts_and_known_feeds`, code assertion in `test_no_network_code` |
+| T50 | Alpaca key leaks via messages, logs, issues or repr | one vault secret `KEY_ID:SECRET`, fetched per connect/request and dropped; sent only in the auth message / headers | `test_the_credential_goes_only_into_the_auth_message_and_never_into_logs` |
+| T51 | Hostile or broken frames (masked, binary, oversize, fragments, NaN, duplicate keys, unknown symbols) | strict WebSocket framing and size limits; strict JSON; unknown symbols rejected; malformed messages counted and dropped, many in a row drop the feed | `test_websocket_protocol_violations_end_the_connection`, `test_bad_messages_are_dropped_and_counted` |
+| T52 | Wrong market status (clock skew, stale clock, wrong asset) makes a closed or halted market look open | any error, skew > 2 s or mismatched answer => UNKNOWN => NO_TRADE; failures are not cached | `test_any_clock_problem_is_unknown`, `test_asset_status_mapping`, `test_asset_status_is_cached_but_failures_are_not` |
+
 ### Control room (`ui/`, see ui/README.md)
 
 | ID | Threat | Controls | Test |

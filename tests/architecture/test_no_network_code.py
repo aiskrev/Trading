@@ -1,7 +1,8 @@
 """Network code lives only in an explicit allow-list; broker execution stays mock-only.
 
-Allowed: the model transport (key only via a SecretsProvider, no tools) and the risk-service link
-(mutual TLS on loopback, ADR 0003 step 3). No broker or market-data network code exists yet.
+Allowed: the model transport (key only via a SecretsProvider, no tools), the risk-service link (mutual TLS
+on loopback, ADR 0003 step 3) and the read-only Alpaca data path (WebSocket stream, GET-only HTTPS to the
+paper host). No order-sending network code exists.
 """
 import ast
 from pathlib import Path
@@ -17,6 +18,8 @@ ALLOWED = {
     "risk_service/tls.py": {"ssl"},
     "risk_service/server.py": {"http", "socket", "ssl"},
     "risk_service/client.py": {"http", "socket", "ssl"},
+    "market_data/websocket.py": {"socket", "ssl"},          # Alpaca stream (read-only, host allow-list)
+    "account_data/https_transport.py": {"http", "ssl"},     # GET-only, paper host allow-list
 }
 
 
@@ -38,7 +41,7 @@ def test_no_network_libraries_imported_anywhere():
 
 def test_the_allow_list_is_exactly_the_model_transport_and_the_risk_service_link():
     assert set(ALLOWED) == {"model_client/anthropic_transport.py", "risk_service/tls.py", "risk_service/server.py",
-                            "risk_service/client.py"}
+                            "risk_service/client.py", "market_data/websocket.py", "account_data/https_transport.py"}
     for rel, modules in ALLOWED.items():                 # no stale entry: each module really uses what it may
         assert modules <= set(_imports(SRC / rel)), rel
     used = {p.relative_to(SRC).as_posix() for p in SRC.rglob("*.py") if "anthropic" in set(_imports(p))}
@@ -62,3 +65,15 @@ def test_the_risk_service_link_cannot_be_pointed_away_from_loopback():
         for forbidden in ("CERT_NONE", "check_hostname = False", "check_hostname=False", "_create_unverified_context",
                           "verify_mode = ssl.CERT_OPTIONAL"):
             assert forbidden not in text, forbidden
+
+
+def test_the_alpaca_data_path_is_read_only_and_host_pinned():
+    https = (SRC / "account_data" / "https_transport.py").read_text(encoding="utf-8")
+    assert '"GET"' in https and not any(m in https for m in ('"POST"', '"PUT"', '"PATCH"', '"DELETE"'))
+    status = (SRC / "account_data" / "alpaca_status.py").read_text(encoding="utf-8")
+    assert 'ALLOWED_HOSTS = frozenset({PAPER_TRADING_HOST})' in status and '"api.alpaca.markets"' not in status
+    stream = (SRC / "market_data" / "alpaca_stream.py").read_text(encoding="utf-8")
+    sent = [line for line in stream.splitlines() if "send_text(" in line]
+    assert len(sent) == 2 and all('"action": "auth"' in l or '"action": "subscribe"' in l for l in sent)
+    ws = (SRC / "market_data" / "websocket.py").read_text(encoding="utf-8")
+    assert "CERT_NONE" not in ws and "check_hostname = False" not in ws

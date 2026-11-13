@@ -211,3 +211,32 @@ approvals:
       import-linter contracts. Supersedes APR-0008 for tests/architecture/test_no_network_code.py. Approved
       before commit; the approving commit is the one that adds this entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0010
+    date: 2026-11-13
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "Одобрявам APR-0010"
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/market_data/websocket.py: dda9cbb5015153e1bd75756b021b5c2b4cfb0959cc54dfd1dba80f07696caff5
+      src/trading_agent/market_data/alpaca_stream.py: 20144284d3b197e90bf1342ea3cfdec80db038edc28ea7bda7855b6ae4cc750b
+      src/trading_agent/account_data/https_transport.py: 7440720bd35d2144d11e688669b17677dcd21ad77e5465dbf46ac59b50dda67a
+      src/trading_agent/account_data/alpaca_status.py: bb137abd818dbcbe34193ad16841330a9e17a2f506b3a43609e180df5fc75a80
+      scripts/alpaca_check.py: 7e490bb6c6f52c41f3b755c13486522c49933cf978a4fd2bb94994f9ced81526
+      tests/architecture/test_no_network_code.py: 3b6f0ba3c2192788fdfbfa5dfa46a0cb7a7581746388778c25ce4fb59f3637c8
+    code_scope: >-
+      Roadmap P3, read-only Alpaca data path (owner chose Alpaca for data and the paper broker, 2026-11-13);
+      credentials-touching and network code. market_data/websocket.py: RFC 6455 client (TLS with trust store and
+      hostname check, text frames only, size limits, non-blocking). market_data/alpaca_stream.py: StreamTransport
+      to wss://stream.data.alpaca.markets or the sandbox host only (feeds iex/sip/delayed_sip/test), sends only auth
+      and subscribe; AlpacaQuoteDecoder for StreamingQuoteAdapter. account_data/https_transport.py: GET-only HTTPS,
+      host allow-list. account_data/alpaca_status.py: GET /v2/clock and /v2/assets/{symbol} on
+      paper-api.alpaca.markets only, every failure => UNKNOWN. Credential: one vault secret alpaca-paper
+      (KEY_ID:SECRET), read per use. scripts/alpaca_check.py: owner-run read-only check, places no orders.
+      test_no_network_code allow-lists market_data/websocket.py and account_data/https_transport.py. Does NOT
+      approve: any order-sending code, the live host, a mode change, a real-symbol universe or risk policy, or
+      use beyond BACKTEST and the owner's read-only check. Tests: tests/market_data/test_alpaca_stream.py,
+      tests/account_data/test_alpaca_status.py, tests/architecture/test_no_network_code.py. Supersedes APR-0009
+      for tests/architecture/test_no_network_code.py. Approved before commit; the approving commit is the one
+      that adds this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

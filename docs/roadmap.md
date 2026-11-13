@@ -66,6 +66,11 @@ Gate: **[owner]** supplies the model API key via the secrets manager; approval f
 
 ## P3: Market-data feeds
 
+**Status:** the owner chose Alpaca for data and the paper broker (2026-11-13; this replaces the
+Massive/Databento choice in ADR 0002). Built: the Alpaca IEX stream transport and decoder, plus the clock and
+asset status (read-only, `docs/alpaca.md`). Open: the real-symbol registry, universe and risk policy v3, and
+the owner's first read-only check with paper keys.
+
 Deliverables: vendor transport plug-in(s) implementing `StreamTransport` (Massive WebSocket and/or
 Databento); production instrument registry and universe; risk policy v3 with real symbols and
 sectors; dataset loader for recorded sessions; **development-only** Massive MCP tooling outside `src/`.
