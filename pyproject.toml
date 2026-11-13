@@ -50,6 +50,7 @@ forbidden_modules = [
     "trading_agent.orchestration",
     "trading_agent.backtest",
     "trading_agent.model_client",
+    "trading_agent.risk_service",
 ]
 
 [[tool.importlinter.contracts]]
@@ -60,6 +61,7 @@ forbidden_modules = [
     "trading_agent.planning",
     "trading_agent.execution",
     "trading_agent.orchestration",
+    "trading_agent.risk_service",
 ]
 
 [[tool.importlinter.contracts]]
@@ -93,6 +95,7 @@ forbidden_modules = [
     "trading_agent.backtest",
     "trading_agent.audit",
     "trading_agent.core.signing",
+    "trading_agent.risk_service",
 ]
 
 [[tool.importlinter.contracts]]
@@ -115,7 +118,9 @@ source_modules = [
     "trading_agent.core", "trading_agent.execution", "trading_agent.features", "trading_agent.market_data",
     "trading_agent.normalization", "trading_agent.observability", "trading_agent.orchestration",
     "trading_agent.planning", "trading_agent.reconciliation", "trading_agent.risk", "trading_agent.strategy",
-    "trading_agent.model_client",
+    "trading_agent.model_client", "trading_agent.risk_service.protocol", "trading_agent.risk_service.pki",
+    "trading_agent.risk_service.tls", "trading_agent.risk_service.service", "trading_agent.risk_service.server",
+    "trading_agent.risk_service.client",
 ]
 forbidden_modules = ["trading_agent.secret_store.vault"]
 
@@ -132,7 +137,45 @@ forbidden_modules = [
     "trading_agent.secret_store.vault",
     "trading_agent.account_data",
     "trading_agent.market_data",
+    "trading_agent.risk_service",
 ]
+
+[[tool.importlinter.contracts]]
+name = "Risk service (ADR 0003 step 3): no LLM, planner, order path or orchestration inside the signing process"
+type = "forbidden"
+source_modules = ["trading_agent.risk_service"]
+forbidden_modules = [
+    "trading_agent.planning",
+    "trading_agent.model_client",
+    "trading_agent.execution",
+    "trading_agent.orchestration",
+    "trading_agent.backtest",
+    "trading_agent.market_data",
+    "trading_agent.account_data",
+]
+
+[[tool.importlinter.contracts]]
+name = "Risk-service client (orchestrator side) holds no key and reaches no risk internals"
+type = "forbidden"
+source_modules = ["trading_agent.risk_service.client"]
+forbidden_modules = [
+    "trading_agent.risk",
+    "trading_agent.risk_service.service",
+    "trading_agent.risk_service.server",
+    "trading_agent.risk_service.pki",
+    "trading_agent.core.signing",
+    "trading_agent.secret_store",
+]
+
+[[tool.importlinter.contracts]]
+name = "Only the risk-service entry point and tests start the signing side of the link"
+type = "forbidden"
+source_modules = [
+    "trading_agent.orchestration", "trading_agent.backtest", "trading_agent.execution", "trading_agent.audit",
+    "trading_agent.features", "trading_agent.normalization", "trading_agent.reconciliation",
+    "trading_agent.strategy", "trading_agent.observability", "trading_agent.risk_service.client",
+]
+forbidden_modules = ["trading_agent.risk_service.service", "trading_agent.risk_service.server"]
 
 [[tool.importlinter.contracts]]
 name = "Contracts and core are leaf layers"
@@ -144,4 +187,5 @@ forbidden_modules = [
     "trading_agent.orchestration",
     "trading_agent.backtest",
     "trading_agent.audit",
+    "trading_agent.risk_service",
 ]

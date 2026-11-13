@@ -176,3 +176,38 @@ approvals:
       Supersedes APR-0007 for client.py and transport.py. Approved before commit; the approving commit is the one that
       adds this entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0009
+    date: 2026-11-13
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "Одобрявам APR-0009"
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/risk_service/__init__.py: 9880b2fab1223acaaba09c45bfd163b83a74c68cd15b1520b0fcf3efcb60c330
+      src/trading_agent/risk_service/__main__.py: afb53dacaaa9c5b9feab835de1731e8b12be4a53b19d7e9254d080a406c20013
+      src/trading_agent/risk_service/client.py: 1ab419663e97c025807c668440fdcdf7dd41d1ec40318dcbd714e45b4936ff4c
+      src/trading_agent/risk_service/pki.py: 1835907db1c0c5ad80558c3948f8c144d6c16326760462fdb5ed4b2118c7ed0f
+      src/trading_agent/risk_service/protocol.py: c98f6c08e401576687122e1fe8dbb04817c210c3c683da3fb1fc1c5ab01949d3
+      src/trading_agent/risk_service/server.py: eedd223d5c0922df7f7811c912fd0688ca5e0c52d7db99cf913f301a8d02fff8
+      src/trading_agent/risk_service/service.py: d168147f3e6113007257e2078e33e4e895ac3d17b2d5a6ed6bfe8aa6fe871bab
+      src/trading_agent/risk_service/tls.py: 14d7942dab95b1e70dcf19c5d031d3523aa1566d4017c71dff7dabb6774e19ef
+      src/trading_agent/orchestration/live_loop.py: e05301832610fbf1639559a1851e5c15b63db915cd06d648502ba25322a4d18c
+      scripts/make_dev_certs.py: 2b656031a64953b71c3c8d94a07a0d7268635ec2cf5e7d1bd6418fe6d09cd713
+      tests/architecture/test_no_network_code.py: 5ee72c5af4fe9be30a157d33d2a1cff895035d62a37fe2c6e66786c819b371e4
+    code_scope: >-
+      ADR 0003 migration step 3, BACKTEST stage (touches /risk signing and network code). The risk gateway and
+      its signing key run in their own process (src/trading_agent/risk_service/, python -m
+      trading_agent.risk_service): mutual TLS 1.3 on loopback only (server identity risk-service with EKU
+      serverAuth, client identity orchestrator with EKU clientAuth), closed request schema and strict JSON,
+      token-bucket rate limit, request-id replay refusal, hash-chained request log written before any answer (a
+      failed write discards the order), kill-switch layer 1 as the first gate rule (unreadable = active), start-up
+      refusal unless the mode is permitted and the policy approved. RemoteRiskGateway (orchestrator side, no key)
+      turns every fault or mismatched answer into a DENY and never retries; LiveLoopRunner accepts it via
+      risk_gateway= and verifies orders with the service's public key. scripts/make_dev_certs.py makes a dev PKI
+      outside the repository and never writes the CA key. test_no_network_code allow-lists
+      risk_service/{tls,server,client}.py. Signing key stays ephemeral. Does NOT approve: any mode change, a
+      non-loopback deployment, broker or market-data network code, the vault signing key (step 4), option B data,
+      or any use beyond BACKTEST. Tests: tests/risk_service/, tests/architecture/test_no_network_code.py,
+      import-linter contracts. Supersedes APR-0008 for tests/architecture/test_no_network_code.py. Approved
+      before commit; the approving commit is the one that adds this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

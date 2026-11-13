@@ -62,14 +62,16 @@ def day_ticks(day: str = "2026-01-13", start_utc: str = "18:40", end_utc: str = 
 
 
 def make_runner(run_dir: Path, clock, session_id: str = "2026-01-13", planner_fn=demo_planner_response,
-                critic_fn=demo_critic_response, config=None, start: Optional[datetime] = None, ticks=None):
+                critic_fn=demo_critic_response, config=None, start: Optional[datetime] = None, ticks=None,
+                risk_gateway=None):
     adapter, transport, _ = feed(sessions=[[]], clock=clock, source_id=VENDOR, heartbeat_s=120, max_age_s=5)
     runner = LiveLoopRunner(run_dir, config or runtime_config(), risk_policy(),
                             load_ops_policy(ROOT / "config" / "ops_policy.v1.yaml"),
                             ScriptedLLM(planner_fn, "demo-strategy.v1"), ScriptedLLM(critic_fn, "demo-critic.v1"),
                             [adapter], clock, session_id,
                             instrument_status=lambda s: InstrumentStatus.TRADING,
-                            venue_status=lambda t: VenueStatus.OPEN, cost_model=CostModel())
+                            venue_status=lambda t: VenueStatus.OPEN, cost_model=CostModel(),
+                            risk_gateway=risk_gateway)
     replay = Replay(ticks if ticks is not None else day_ticks(), transport, clock, start=start)
     return runner, replay
 

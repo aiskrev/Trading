@@ -40,7 +40,7 @@ from trading_agent.contracts.proposal import Decision
 from trading_agent.core.clock import Clock
 from trading_agent.core.errors import AuditWriteFailure, ConfigError
 from trading_agent.core.mode import RuntimeConfig, assert_mode_permitted
-from trading_agent.core.signing import BACKTEST_ACCOUNT_ALIAS, EphemeralSigner
+from trading_agent.core.signing import BACKTEST_ACCOUNT_ALIAS, EphemeralSigner, TrustedKey
 from trading_agent.core.trading_state import TradingState, TradingStateMachine
 from trading_agent.core.types import IdFactory
 from trading_agent.execution.cost_model import CostModel
@@ -87,7 +87,7 @@ class LiveLoopRunner:
                  venue_status: Callable[[datetime], VenueStatus] = lambda t: VenueStatus.UNKNOWN,
                  cost_model: Optional[CostModel] = None, starting_cash: Decimal = Decimal(100000),
                  run_id: str = "paper", prompts_dir: Path = ROOT / "prompts",
-                 config_dir: Path = ROOT / "config") -> None:
+                 config_dir: Path = ROOT / "config", risk_gateway=None) -> None:
         assert_mode_permitted(config.mode)  # PAPER is refused until the owner permits and approves it
         self.dir = Path(run_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
@@ -117,10 +117,19 @@ class LiveLoopRunner:
         self._current: Optional[MarketSnapshot] = None
 
         self.idempotency, idem_open = IdempotencyStore.open(self.dir / "idempotency.jsonl")
-        signer = EphemeralSigner()  # a restart issues a new key; orders signed before it no longer verify
-        verifier = OrderVerifier([signer.trusted_key()], config.mode, BACKTEST_ACCOUNT_ALIAS,
-                                 {policy.source_sha256}, clock)
-        self.gateway = RiskGateway(policy, config.mode, signer, self.ids, clock)
+        if risk_gateway is None:
+            signer = EphemeralSigner()  # a restart issues a new key; orders signed before it no longer verify
+            verifier = OrderVerifier([signer.trusted_key()], config.mode, BACKTEST_ACCOUNT_ALIAS,
+                                     {policy.source_sha256}, clock)
+            self.gateway = RiskGateway(policy, config.mode, signer, self.ids, clock)
+        else:
+            # Risk service in its own process (ADR 0003 step 3): this process holds no signing key. The public
+            # key came over the mutually authenticated link; the policy must be the one this run approved.
+            if risk_gateway.mode is not config.mode or risk_gateway.policy.source_sha256 != policy.source_sha256:
+                raise ConfigError("the risk service runs another mode or policy than this run")
+            verifier = OrderVerifier([TrustedKey(key_id=risk_gateway.key_id, public_key=risk_gateway.public_key)],
+                                     config.mode, risk_gateway.account_alias, {policy.source_sha256}, clock)
+            self.gateway = risk_gateway
         self.broker = create_execution_port(config.mode, verifier=verifier, cost_model=cost_model or CostModel(),
                                             quote_for=lambda s: self._current.quotes.get(s) if self._current else None,
                                             clock=clock, ids=self.ids, partial_fills=True, idempotency=self.idempotency)

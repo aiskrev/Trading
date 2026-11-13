@@ -109,6 +109,10 @@ lying orchestrator.
 Decisions made (ADR 0003): self-built vault now (KMS/HSM before CANARY_LIVE), risk service reads its
 own data, order TTL 5 s, skew 1 s.
 
+Status: `ApprovedOrder` v2 + `OrderVerifier` (APR-0005), idempotency store (APR-0006) done. Risk service
+process with mTLS on loopback **done (APR-0009)** (`docs/risk-service.md`); open in P5: signing key in
+the vault, leader epoch, kill-switch layers 2-3, option B data, the host decision.
+
 Gate: **[owner]** initialise the vault with your own passphrase (`scripts/vault.py init`, never in
 chat); approval entries for the new /risk, /execution and vault code; certificates.
 

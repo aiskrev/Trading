@@ -15,7 +15,9 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   APR-0006 durable idempotency store + client_order_id + simulator/port changes (supersedes APR-0005 for the simulator) ·
   APR-0007 model client + `evaluation_time` in the planner payload + eval set planner-eval.v2 (offline only) ·
   APR-0008 Anthropic Messages transport (key via SecretsProvider), thinking-block tolerance, one-module network allow-list,
-  `scripts/run_model_eval.py` (supersedes APR-0007 for client.py/transport.py). Editing an approved
+  `scripts/run_model_eval.py` (supersedes APR-0007 for client.py/transport.py) ·
+  APR-0009 risk service as its own process (mTLS on loopback, `src/trading_agent/risk_service/`), network allow-list
+  extended to it (supersedes APR-0008 for `tests/architecture/test_no_network_code.py`). Editing an approved
   file voids its approval until a new entry is added.
 * Working pattern the owner expects: do the work, run tests, show results, **ask before committing**
   (commits auto-push to a **public** GitHub repo), ask for approvals with an explicit question. Never ask for
@@ -124,8 +126,11 @@ vault client token was pasted once and was revoked and re-issued).
 Engineering next steps (each needs tests + an approval entry where it touches /risk, /execution or credentials):
 1. ~~ADR 0003 step 1~~ **done (APR-0005)**: `ApprovedOrder` v2, `OrderVerifier`, HMAC removed.
    ~~Step 2~~ **done (APR-0006)**: durable idempotency store, `client_order_id`, restart settlement (live loop
-   HALTs on `UNRESOLVED_ORDER`). Next is step 3: risk service as its own process behind a narrow
-   request/response schema with mTLS (also read approved policy hashes from approvals; needs the host decision).
+   HALTs on `UNRESOLVED_ORDER`). Step 3 **done (APR-0009, 2026-11-13)**:
+   `src/trading_agent/risk_service/` (own process, mTLS 1.3 on loopback, closed schema, request log,
+   kill-switch layer 1, fail-closed client; `docs/risk-service.md`, threats T38-T47, `tests/risk_service/`).
+   Left for P5: networked host decision, option B data, signing key in the vault (step 4), epoch and kill-switch
+   layers 2-3 (step 5), execution service reading approved policy hashes from approvals.
    Editing `simulated_broker.py`/`idempotency.py`/`ports.py` voids APR-0006 for them.
 2. ~~`SimulatedBroker.restore_positions`~~ done in APR-0006.
 3. Wire `VaultSecretsProvider` into adapters; hash-locked dependency file (new `cryptography` dep).

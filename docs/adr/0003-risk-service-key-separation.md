@@ -156,6 +156,14 @@ permission), is set only by a human, and an unreadable state means "active".
    `tests/live/test_live_idempotency.py`. For a real broker (P6), "absent" needs an added grace period
    because broker lookups are eventually consistent; the simulator's book is authoritative.
 3. Split the risk service into its own process behind a narrow request/response schema; mTLS.
+   **Implemented (APR-0009)** (`src/trading_agent/risk_service/`, `docs/risk-service.md`,
+   `tests/risk_service/`): mutual TLS 1.3 on loopback only (identities `risk-service` / `orchestrator`, EKU
+   checked), closed request schema, strict JSON, rate limit, request-id replay refusal, hash-chained request
+   log (no order leaves if it cannot be written), kill-switch layer 1 as the first gate rule, start-up refusal
+   unless the mode is permitted and the policy approved. The orchestrator-side client turns every fault or
+   mismatched answer into a DENY and never retries; the live loop takes it via `risk_gateway=` and verifies
+   orders with the service's public key. Still option A (orchestrator supplies snapshots); the host decision,
+   option B and the approved-hash list read from approvals by a separate execution service remain open.
 4. Move the signing key to the secrets manager / KMS (owner action: provide it; never in chat).
 5. Add leader epoch and the external kill switch layers.
 

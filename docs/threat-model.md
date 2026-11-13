@@ -76,6 +76,21 @@ Review this document whenever a module crosses a trust boundary or a new mode is
 | T28 | Vault committed to git or leaked via logs | CLI refuses paths inside a work tree, `.gitignore`, push-gate file-name block, redaction, no repr/pickle | `test_no_secret_in_logging_repr_or_pickle`, `test_cli_flow_and_refusals` |
 | T29 | Vault used by non-root code | import-linter: only composition roots may import `secret_store.vault` | `lint-imports`, `test_vault_is_not_importable_outside_composition_roots` |
 
+### Risk service link (ADR 0003 step 3, see docs/risk-service.md)
+
+| ID | Threat | Controls | Test |
+|---|---|---|---|
+| T38 | Another local process (planner, a script, malware without the client key) asks the risk service for orders | mutual TLS 1.3; client certificate from the configured CA with EKU clientAuth and CN `orchestrator`; failed handshakes logged | `test_a_client_without_a_certificate_is_refused_and_logged`, `test_a_client_certificate_from_another_ca_is_refused`, `test_a_client_presenting_the_server_certificate_is_refused`, `test_a_valid_client_certificate_for_another_identity_is_refused` |
+| T39 | The orchestrator talks to an impostor service that hands out its own "orders" | server certificate must be EKU serverAuth with DNS name `risk-service`; execution verifies every order against the key from the authenticated `/v1/info`; client checks each answer against its request | `test_the_client_refuses_a_server_that_is_not_the_risk_service`, `test_an_answer_that_does_not_match_the_request_yields_no_order` |
+| T40 | A request changes the mode, policy, limits, account or key | closed schema (`extra="forbid"`), strict JSON; mode and policy fixed at start, policy must be approved for the mode | `test_a_request_cannot_carry_mode_policy_account_or_signature`, `test_malformed_bodies_are_refused`, `test_the_service_refuses_to_start_unapproved_or_in_a_forbidden_mode` |
+| T41 | A captured or repeated request yields a second order | request-id replay refusal; the gateway's duplicate and rate rules; client never retries | `test_a_replayed_request_never_yields_a_second_order` |
+| T42 | Flooding or a stalled connection blocks risk decisions | token-bucket rate limit; handshake and reads under a 5 s timeout; one request at a time; the client's timeout turns a slow service into DENY | `test_the_rate_limit_refuses_bursts`, `test_a_stalled_peer_does_not_block_the_service`, `test_transport_faults_become_deny` |
+| T43 | The service is reachable from the network | listener and client accept loopback addresses only; no `CERT_NONE`, no disabled hostname check | `test_the_link_is_loopback_only_and_needs_an_authenticating_context`, `test_the_risk_service_link_cannot_be_pointed_away_from_loopback` |
+| T44 | An order leaves the service without a record | the request record is written before the answer; a failed write discards the order | `test_a_failed_log_write_discards_the_order`, `test_every_request_is_logged_in_a_chain_without_signatures_or_keys` |
+| T45 | Kill switch ignored by a compromised orchestrator | the service checks the switch itself on every request (layer 1); unreadable = active | `test_the_kill_switch_stops_signing`, `test_an_unreadable_kill_switch_counts_as_active` |
+| T46 | TLS private keys end up in git or logs | dev PKI and the service refuse paths inside a work tree; the dev CA key is never written; nothing logs key material | `test_keys_are_never_written_inside_the_repository`, `test_dev_pki_works_end_to_end_and_never_writes_the_ca_key` |
+| T47 | A compromised orchestrator lies about prices or positions (option A) | **open**: snapshots are content-hashed and bound into the signed order (attributable afterwards); option B (service reads its own data) before PAPER | none yet |
+
 ### Control room (`ui/`, see ui/README.md)
 
 | ID | Threat | Controls | Test |
