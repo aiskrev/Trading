@@ -1,0 +1,13 @@
+# Canonical instrument identifiers for real US symbols (risk-policy.v3). Alpaca uses the same tickers,
+# so the "alpaca" source needs no aliases. Unknown vendor symbols are rejected, never guessed.
+version: instruments.v2
+instruments:
+  - {symbol: SPY,   asset_class: ETF}
+  - {symbol: QQQ,   asset_class: ETF}
+  - {symbol: IWM,   asset_class: ETF}
+  - {symbol: AAPL,  asset_class: EQUITY}
+  - {symbol: MSFT,  asset_class: EQUITY}
+  - {symbol: GOOGL, asset_class: EQUITY}
+  - {symbol: AMZN,  asset_class: EQUITY}
+  - {symbol: JPM,   asset_class: EQUITY}
+  - {symbol: XOM,   asset_class: EQUITY}

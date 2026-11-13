@@ -1,0 +1,11 @@
+version: universe.v2
+symbols:
+  - SPY
+  - QQQ
+  - IWM
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - JPM
+  - XOM

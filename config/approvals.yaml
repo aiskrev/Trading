@@ -264,3 +264,24 @@ approvals:
       tests/architecture/test_no_network_code.py. Supersedes APR-0010 for tests/architecture/test_no_network_code.py.
       Approved before commit; the approving commit is the one that adds this entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0012
+    date: 2026-11-13
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "Одобрявам APR-0012"
+    modes: [BACKTEST]
+    files:
+      risk_policy.v3.yaml: 1077e5b50c25ed130c7760704636ef9c0f48d64334828badf3a9a392608da28c
+      restricted.v1.yaml: 674e2a1ddbe75f4b650bb33bfe62902824c3e251f51f28e4ea66becabc1714b4
+      config/instruments.v2.yaml: 974e332976a3090487f32eefbc748ab3ca6db0f0969844766a6caadc7ffe4759
+      config/universe.v2.yaml: 0a552475c9c4f95b7a5329880d3ee3c123b75719c8153de502ca21f6335ab852
+    code_scope: >-
+      Risk policy risk-policy.v3 for real US symbols (SPY, QQQ, IWM, AAPL, MSFT, GOOGL, AMZN, JPM, XOM) on a ~100k
+      USD Alpaca paper account, with the unchanged compliance list restricted.v1, the instrument registry
+      instruments.v2 and the universe universe.v2 (rationale in docs/risk-policy-v3.md): orders 1,000-5,000 USD
+      (whole shares), 10,000 per name, 40,000 gross/net, sector caps, 12% concentration, 5,000 cash buffer, 1,000
+      daily loss, 2% drawdown, 10 orders a day, long only, critic and statuses required; NYSE holidays to
+      2027-12. Tests: tests/unit/test_risk_policy_v3.py (and tests/unit/test_risk_config.py now uses a v99 example
+      for an unpinned policy). Does NOT approve: any mode other than BACKTEST, wiring for PAPER, or any order to a
+      broker. Approved before commit; the approving commit is the one that adds this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

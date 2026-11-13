@@ -1,0 +1,69 @@
+# Deterministic pre-trade risk limits for REAL US symbols (Alpaca paper account, ~100,000 USD).
+# RELEASED VERSIONS ARE IMMUTABLE: this file's SHA-256 is pinned in risk_config.lock.yaml.
+# To change a limit, add risk_policy.v4.yaml (tests + explicit production approval, CODEOWNERS).
+# Rationale for every number: docs/risk-policy-v3.md.
+version: risk-policy.v3
+restricted_list_file: restricted.v1.yaml
+
+instruments:            # liquid large caps and index ETFs only; every share price far below min_order_notional
+  SPY:   {sector: INDEX_ETF}
+  QQQ:   {sector: INDEX_ETF}
+  IWM:   {sector: INDEX_ETF}
+  AAPL:  {sector: TECH}
+  MSFT:  {sector: TECH}
+  GOOGL: {sector: TECH}
+  AMZN:  {sector: CONSUMER}
+  JPM:   {sector: FINANCIALS}
+  XOM:   {sector: ENERGY}
+
+session:
+  timezone: America/New_York
+  weekdays: [MON, TUE, WED, THU, FRI]
+  open: "09:30"
+  close: "16:00"
+  avoid_open_minutes: 5         # opening auction aftermath: wide, jumpy quotes
+  avoid_close_minutes: 10       # closing imbalance flows
+  holidays: ["2026-11-26", "2026-12-25",
+             "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26", "2027-05-31",
+             "2027-06-18", "2027-07-05", "2027-09-06", "2027-11-25", "2027-12-24"]
+  # Early closes (2026-11-27, 2026-12-24, 2027-11-26 at 13:00) are not modelled here: Alpaca's clock
+  # reports the market closed, the venue status becomes CLOSED, and the gate denies.
+
+# freshness (IEX quotes on less active names can pause for a few seconds)
+max_snapshot_age_seconds: 5
+max_quote_age_seconds: 5
+max_future_skew_seconds: 1
+
+# sizing and exposure (USD)
+min_order_notional: "1000"      # above every share price in the universe, so an order is >= 1 whole share
+max_order_notional: "5000"      # 5% of the paper account
+max_position_notional: "10000"  # 10% per name
+max_gross_exposure: "40000"     # 40% invested at most
+max_net_exposure: "40000"
+max_sector_exposure: {INDEX_ETF: "20000", TECH: "20000", CONSUMER: "10000", FINANCIALS: "10000", ENERGY: "10000"}
+max_concentration_pct: "0.12"
+min_cash_buffer: "5000"
+
+# prices (IEX top of book is wider than the national best bid/offer)
+price_collar_bps: "30"
+max_spread_bps: "20"
+max_slippage_bps: "15"
+commission_bps: "1"             # Alpaca has no commission; this covers regulatory sell fees with margin
+
+# losses
+daily_loss_limit: "1000"        # 1% of the account per day
+max_drawdown_pct: "0.02"        # 2% from the intraday equity high-water mark
+
+# order rates
+max_orders_per_day: 10
+max_orders_per_minute: 2
+max_orders_per_instrument_per_minute: 1
+
+# state requirements (fail closed when unknown)
+require_instrument_status: true
+require_broker_view: true
+max_broker_view_age_seconds: 5
+position_tolerance: "0.000001"
+
+allow_short: false
+critic_required: true

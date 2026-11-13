@@ -46,9 +46,9 @@ def test_editing_the_restricted_list_is_refused(config_copy):
 
 
 def test_unpinned_policy_is_refused(config_copy):
-    shutil.copy(config_copy / "risk_policy.v2.yaml", config_copy / "risk_policy.v3.yaml")
+    shutil.copy(config_copy / "risk_policy.v2.yaml", config_copy / "risk_policy.v99.yaml")
     with pytest.raises(ConfigError, match="not a released"):
-        load_risk_policy(config_copy / "risk_policy.v3.yaml")
+        load_risk_policy(config_copy / "risk_policy.v99.yaml")
 
 
 def test_file_name_must_match_declared_version(config_copy):
