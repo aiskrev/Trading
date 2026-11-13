@@ -285,3 +285,33 @@ approvals:
       for an unpinned policy). Does NOT approve: any mode other than BACKTEST, wiring for PAPER, or any order to a
       broker. Approved before commit; the approving commit is the one that adds this entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0013
+    date: 2026-11-13
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "Одобрявам APR-0013"
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/execution/registry.py: 15ef7bf0fbbf449ad9c76ce861ac571fd077faa91fbfa25040b7ee6c8a387fed
+      src/trading_agent/orchestration/paper.py: 87a358d13d65534783aa9a0b822a82a25b5485dc09bcb74310050506cc9f7c04
+      src/trading_agent/orchestration/live_loop.py: d853a417b307bb6c09a96e7489ebf20ce4ebe8351d2e07fcb8079960812fc4b0
+      src/trading_agent/core/accounts.py: c141642e46d06cb5e2cbcbe9a2769d5fe9298cc9af04793e877e20dfac78189d
+      src/trading_agent/risk_service/__main__.py: 864f4fa81ed307ac76d7d43309792530737b78a79b9ff3b7e07c1bacd35fdbb7
+      scripts/run_paper_session.py: 3c7a580ae1f91373933155951cf44c7d5d9b9406f39222ffe1e7ab45c4f4d5a0
+      tests/architecture/test_no_network_code.py: 8c77f882a1ac1d5045e190376fb0d3bac8c085dacca5db32c15ec2e3b033570e
+      tests/architecture/test_mode_and_adapters.py: 4b9f9ab78610db8aec8a867e8d8ee3eca320eb1ce78ad079b529b0ef3ab35d7e
+    code_scope: >-
+      Roadmap P6 PAPER composition, built but NOT enabled (/execution, credentials and live-deployment code).
+      execution/registry.py registers AlpacaPaperBroker for PAPER only (needs a trading client and a durable
+      idempotency store); create_execution_port still refuses PAPER because PAPER is not a permitted mode.
+      core/accounts.py binds an account alias per mode (backtest-sim, alpaca-paper); the risk service picks it
+      from its mode. orchestration/live_loop.py takes account_alias and broker_deps and keeps a real broker's own
+      book. orchestration/paper.py builds a PAPER LiveLoopRunner (Alpaca stream, status, execution, remote risk
+      service) after a broker pre-flight (account active, unblocked, USD; a new run must start flat) and drives
+      sessions. scripts/run_paper_session.py is the owner-run entry point (vault token from the owner). Does NOT
+      approve: permitting PAPER, writing a PAPER runtime config, any prompt version, any order to Alpaca, or any
+      mode other than BACKTEST. Tests: tests/live/test_paper_session.py (on fakes, PAPER widened only inside the
+      test process), tests/architecture/*. Supersedes APR-0009 for risk_service/__main__.py and APR-0011 for
+      tests/architecture/test_no_network_code.py. Approved before commit; the approving commit is the one that
+      adds this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]

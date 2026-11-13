@@ -23,7 +23,9 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   APR-0011 Alpaca PAPER execution port (`execution/alpaca_paper.py`, six allow-listed requests, IOC, HALT on any
   ambiguous answer); not registered, PAPER not permitted (supersedes APR-0010 for test_no_network_code.py). ·
   APR-0012 risk-policy.v3 for 9 real US symbols (~100k paper account; `docs/risk-policy-v3.md`), instruments.v2,
-  universe.v2, BACKTEST only. Editing an approved
+  universe.v2, BACKTEST only. ·
+  APR-0013 PAPER composition built but not enabled (`orchestration/paper.py`, `scripts/run_paper_session.py`,
+  registry PAPER entry, `core/accounts.py`); the owner's remaining steps are in `docs/paper-runbook.md`. Editing an approved
   file voids its approval until a new entry is added.
 * Working pattern the owner expects: do the work, run tests, show results, **ask before committing**
   (commits auto-push to a **public** GitHub repo), ask for approvals with an explicit question. Never ask for

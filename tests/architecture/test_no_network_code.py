@@ -3,7 +3,7 @@
 Allowed: the model transport (key only via a SecretsProvider, no tools), the risk-service link (mutual TLS
 on loopback, ADR 0003 step 3) and the read-only Alpaca data path (WebSocket stream, GET-only HTTPS to the
 paper host) and the Alpaca PAPER trading client (fixed paper host, six allow-listed requests). The paper
-execution port is not in the execution registry, and PAPER is not a permitted mode: only the owner changes that.
+execution port is registered for PAPER only, and PAPER is not a permitted mode: only the owner changes that.
 """
 import ast
 from pathlib import Path
@@ -21,7 +21,7 @@ ALLOWED = {
     "risk_service/client.py": {"http", "socket", "ssl"},
     "market_data/websocket.py": {"socket", "ssl"},          # Alpaca stream (read-only, host allow-list)
     "account_data/https_transport.py": {"http", "ssl"},     # GET-only, paper host allow-list
-    "execution/alpaca_http.py": {"http", "ssl"},            # paper trading API, request allow-list, not registered
+    "execution/alpaca_http.py": {"http", "ssl"},            # paper trading API, request allow-list
 }
 
 
@@ -55,12 +55,15 @@ def test_the_allow_list_is_exactly_the_model_transport_and_the_risk_service_link
 
 
 def test_broker_execution_is_mock_only():
-    assert registry.permitted_adapters() == {Mode.BACKTEST: "SimulatedBroker"}
+    assert registry.permitted_adapters() == {Mode.BACKTEST: "SimulatedBroker", Mode.PAPER: "AlpacaPaperBroker"}
     names = {p.stem for p in (SRC / "execution").glob("*.py")}
     assert names == {"__init__", "ports", "registry", "simulated_broker", "cost_model", "verifier", "idempotency",
                      "alpaca_http", "alpaca_paper"}
-    registry_text = (SRC / "execution" / "registry.py").read_text(encoding="utf-8")
-    assert "alpaca" not in registry_text.lower()          # built and tested, but not reachable from any mode
+    # PAPER -> Alpaca paper account only; no live adapter; PAPER itself is still not a permitted mode
+    from trading_agent.core.mode import PERMITTED_MODES_THIS_STAGE
+    assert Mode.PAPER not in PERMITTED_MODES_THIS_STAGE
+    assert not any(m in registry.permitted_adapters() for m in (Mode.CANARY_LIVE, Mode.LIMITED_LIVE,
+                                                                 Mode.FULL_CONFIGURED_LIVE, Mode.SHADOW))
 
 
 def test_the_risk_service_link_cannot_be_pointed_away_from_loopback():

@@ -87,7 +87,8 @@ class LiveLoopRunner:
                  venue_status: Callable[[datetime], VenueStatus] = lambda t: VenueStatus.UNKNOWN,
                  cost_model: Optional[CostModel] = None, starting_cash: Decimal = Decimal(100000),
                  run_id: str = "paper", prompts_dir: Path = ROOT / "prompts",
-                 config_dir: Path = ROOT / "config", risk_gateway=None) -> None:
+                 config_dir: Path = ROOT / "config", risk_gateway=None,
+                 account_alias: str = BACKTEST_ACCOUNT_ALIAS, broker_deps: Optional[Dict[str, Any]] = None) -> None:
         assert_mode_permitted(config.mode)  # PAPER is refused until the owner permits and approves it
         self.dir = Path(run_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
@@ -119,20 +120,22 @@ class LiveLoopRunner:
         self.idempotency, idem_open = IdempotencyStore.open(self.dir / "idempotency.jsonl")
         if risk_gateway is None:
             signer = EphemeralSigner()  # a restart issues a new key; orders signed before it no longer verify
-            verifier = OrderVerifier([signer.trusted_key()], config.mode, BACKTEST_ACCOUNT_ALIAS,
+            verifier = OrderVerifier([signer.trusted_key()], config.mode, account_alias,
                                      {policy.source_sha256}, clock)
-            self.gateway = RiskGateway(policy, config.mode, signer, self.ids, clock)
+            self.gateway = RiskGateway(policy, config.mode, signer, self.ids, clock, account_alias=account_alias)
         else:
             # Risk service in its own process (ADR 0003 step 3): this process holds no signing key. The public
             # key came over the mutually authenticated link; the policy must be the one this run approved.
-            if risk_gateway.mode is not config.mode or risk_gateway.policy.source_sha256 != policy.source_sha256:
-                raise ConfigError("the risk service runs another mode or policy than this run")
+            if (risk_gateway.mode is not config.mode or risk_gateway.policy.source_sha256 != policy.source_sha256
+                    or risk_gateway.account_alias != account_alias):
+                raise ConfigError("the risk service runs another mode, policy or account than this run")
             verifier = OrderVerifier([TrustedKey(key_id=risk_gateway.key_id, public_key=risk_gateway.public_key)],
                                      config.mode, risk_gateway.account_alias, {policy.source_sha256}, clock)
             self.gateway = risk_gateway
         self.broker = create_execution_port(config.mode, verifier=verifier, cost_model=cost_model or CostModel(),
                                             quote_for=lambda s: self._current.quotes.get(s) if self._current else None,
-                                            clock=clock, ids=self.ids, partial_fills=True, idempotency=self.idempotency)
+                                            clock=clock, ids=self.ids, partial_fills=True, idempotency=self.idempotency,
+                                            **(broker_deps or {}))
         planner = ClaudePlanner(planner_llm, load_prompt(prompts_dir, "trading_planner",
                                                          config.prompt_versions["trading_planner"]),
                                 config.strategy_version, {"name": config.strategy_version},
@@ -187,9 +190,11 @@ class LiveLoopRunner:
         if not same_session:
             self.portfolio.start_session()
         # 2. restore the broker's own book from its independent file
+        # (a real broker keeps its own book: only the simulator restores one from file)
         positions, orders = self._read_broker_book()
-        self.broker.restore_positions(positions)
-        self.broker.restore_orders(orders)
+        if hasattr(self.broker, "restore_positions"):
+            self.broker.restore_positions(positions)
+            self.broker.restore_orders(orders)
         # 3. restore trading state; never resume better than the floor inside a session
         restored = records[-1].trading_state
         info["restored_state"] = restored.value
@@ -337,7 +342,8 @@ class LiveLoopRunner:
     def _save_broker_book(self) -> None:
         self._write_json(self.dir / "broker_book.json",
                          {"positions": {s: str(q) for s, q in self.broker.broker_positions().items()},
-                          "orders": {cid: a.model_dump(mode="json") for cid, a in self.broker.order_book().items()},
+                          "orders": {cid: a.model_dump(mode="json") for cid, a in
+                                     (self.broker.order_book() if hasattr(self.broker, "order_book") else {}).items()},
                           "segment": self.segment, "at": self.clock.now().isoformat()})
 
     def _read_broker_book(self) -> "tuple":

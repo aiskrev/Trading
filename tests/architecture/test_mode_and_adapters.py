@@ -28,9 +28,22 @@ def test_only_backtest_is_permitted_this_stage():
     assert PERMITTED_MODES_THIS_STAGE == frozenset({Mode.BACKTEST})
 
 
-def test_registry_has_only_simulated_broker():
-    assert registry.permitted_adapters() == {Mode.BACKTEST: "SimulatedBroker"}
+def test_registry_has_the_simulator_and_a_paper_adapter_that_is_not_reachable_yet():
+    assert registry.permitted_adapters() == {Mode.BACKTEST: "SimulatedBroker", Mode.PAPER: "AlpacaPaperBroker"}
     assert isinstance(registry.create_execution_port(Mode.BACKTEST, **_deps()), SimulatedBroker)
+    with pytest.raises(ModeNotPermitted):            # PAPER is not a permitted mode: only the owner changes that
+        registry.create_execution_port(Mode.PAPER, **_deps())
+
+
+def test_the_paper_adapter_needs_a_trading_client_and_a_durable_store(monkeypatch):
+    from trading_agent.core import mode as mode_module
+    from trading_agent.execution.idempotency import IdempotencyStore
+    monkeypatch.setattr(mode_module, "PERMITTED_MODES_THIS_STAGE", frozenset({Mode.BACKTEST, Mode.PAPER}))
+    with pytest.raises(AdapterNotPermitted):
+        registry.create_execution_port(Mode.PAPER, **_deps())
+    with pytest.raises(AdapterNotPermitted):
+        registry.create_execution_port(Mode.PAPER, trading_client=object(), idempotency=IdempotencyStore.in_memory(),
+                                       **_deps())
 
 
 @pytest.mark.parametrize("mode", [m for m in Mode if m is not Mode.BACKTEST])

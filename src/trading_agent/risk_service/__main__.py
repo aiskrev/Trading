@@ -11,6 +11,7 @@ import secrets
 import sys
 from pathlib import Path
 
+from trading_agent.core.accounts import account_alias_for
 from trading_agent.core.clock import SystemClock
 from trading_agent.core.errors import TradingAgentError
 from trading_agent.core.mode import load_runtime_config
@@ -44,7 +45,8 @@ def main(argv=None) -> int:
             raise TradingAgentError("keys and the request log must be outside the git repository")
         service_id = f"rs-{secrets.token_hex(4)}"   # ids unique per start: order_ids never repeat after a restart
         service = build_risk_service(policy, config.mode, EphemeralSigner(service_id), SystemClock(), config_dir,
-                                     args.log, service_id, kill_switch_paths=args.kill_switch)
+                                     args.log, service_id, kill_switch_paths=args.kill_switch,
+                                     account_alias=account_alias_for(config.mode))
         context = server_context(pki / "ca.pem", pki / f"{SERVICE_IDENTITY}.pem", pki / f"{SERVICE_IDENTITY}.key")
         server = RiskServiceServer(service, context, args.host, args.port)
     except (TradingAgentError, OSError) as exc:

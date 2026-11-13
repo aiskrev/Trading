@@ -112,6 +112,15 @@ Review this document whenever a module crosses a trust boundary or a new mode is
 | T57 | A resting order the risk gateway does not know about | IOC; anything still open after the wait is cancelled; still open => HALT | `test_an_order_left_open_is_cancelled_then_settled` |
 | T58 | Trading key leaks | sent only as headers; never in bodies, errors or logs | `test_only_post_carries_a_body_and_secrets_stay_out_of_errors`, `test_a_signed_order_becomes_one_ioc_limit_order_for_whole_shares` |
 
+### PAPER composition (roadmap P6, see docs/paper-runbook.md)
+
+| ID | Threat | Controls | Test |
+|---|---|---|---|
+| T59 | PAPER starts without the owner's decision | mode must be permitted (owner-only change), the runtime config must say PAPER, approvals must cover policy, strategy and prompts for PAPER; Claude never writes a mode | `test_paper_is_refused_while_it_is_not_permitted`, `test_the_backtest_runtime_config_cannot_be_used_for_paper`, `test_registry_has_the_simulator_and_a_paper_adapter_that_is_not_reachable_yet` |
+| T60 | A run starts on top of unexplained broker positions, or on a blocked account | pre-flight: account ACTIVE, unblocked, USD; a new run requires a flat account | `test_a_new_run_refuses_an_account_that_already_holds_positions`, `test_a_blocked_account_is_refused` |
+| T61 | Orders signed for one account land on another | account alias bound per mode (`core/accounts.py`) into the signature and client_order_id; the composition refuses a risk service for another account | `test_a_risk_service_for_another_account_is_refused` |
+| T62 | A restart double-trades or forgets a fill | ledger rebuild + reconciliation against the real broker's positions; REDUCE_ONLY floor within a session | `test_a_restart_mid_session_recovers_against_the_real_broker_book` |
+
 ### Control room (`ui/`, see ui/README.md)
 
 | ID | Threat | Controls | Test |
