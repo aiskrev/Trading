@@ -45,7 +45,7 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   `requirements/{runtime,model,dev}.lock` (+ `sbom.cdx.json`); install with `pip install --require-hashes -r
   requirements/dev.lock` then `pip install --no-deps -e .` (see `requirements/README.md`). Verified: the full suite passes
   on Python 3.12.15 / Linux from a fresh hash-locked venv. **WSL (3.0.3, kernel 6.18) has two distros, both upgraded to
-  Ubuntu 26.04.1 LTS on 2026-10-22 (system Python 3.14.4):** `Ubuntu-22.04` (the name is historical; it holds the owner's
+  Ubuntu 26.04.1 LTS on 2026-10-22 (system Python 3.14.4):** `Ubuntu-26.04` (renamed from `Ubuntu-22.04`, which no longer exists; it holds the owner's
   real vault in `~/.trading-agent`, the clone `~/trading-agent` and the venv `~/venvs/trading`, rebuilt from the hash
   locks on 3.14.4) and `Ubuntu` (empty, same release). A full snapshot of the distro from before the upgrade is in
   `D:\Backups\ubuntu-22.04-before-upgrade-20261022.tar` (restore with `wsl --import`; contains the encrypted vault).
@@ -137,7 +137,8 @@ Engineering next steps (each needs tests + an approval entry where it touches /r
    HALTs on `UNRESOLVED_ORDER`). Step 3 **done (APR-0009, 2026-11-13)**:
    `src/trading_agent/risk_service/` (own process, mTLS 1.3 on loopback, closed schema, request log,
    kill-switch layer 1, fail-closed client; `docs/risk-service.md`, threats T38-T47, `tests/risk_service/`).
-   Left for P5: networked host decision, option B data, signing key in the vault (step 4), epoch and kill-switch
+   Dev certificates for the link are in WSL `~/trading-agent-pki` (made 2026-11-13; keys 0600, CA key never saved).
+  Left for P5: networked host decision, option B data, signing key in the vault (step 4), epoch and kill-switch
    layers 2-3 (step 5), execution service reading approved policy hashes from approvals.
    Editing `simulated_broker.py`/`idempotency.py`/`ports.py` voids APR-0006 for them.
 2. ~~`SimulatedBroker.restore_positions`~~ done in APR-0006.

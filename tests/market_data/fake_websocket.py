@@ -60,6 +60,10 @@ class FakeAlpacaServer:
     def close(self) -> None:
         self._stop = True
         try:
+            self._sock.shutdown(socket.SHUT_RDWR)   # Linux: close() alone does not end a recv blocked in our thread
+        except OSError:
+            pass
+        try:
             self._sock.close()
         except OSError:
             pass
