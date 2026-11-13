@@ -53,12 +53,38 @@ Fail-closed choices:
    python scripts/alpaca_check.py --feed test --symbols FAKEPACA --seconds 10
    ```
 
+## Step 2: Alpaca PAPER execution port, built (APR-0011; not registered, PAPER not permitted)
+
+| piece | file | what it does |
+|---|---|---|
+| trading client | `execution/alpaca_http.py` | paper host only (a constant); exactly six requests: place an order, read/cancel ONE order, look up by `client_order_id`, positions, account. No cancel-all, close-all, replace, account configuration or watchlists |
+| execution port | `execution/alpaca_paper.py` `AlpacaPaperBroker` | same interface as `SimulatedBroker` |
+
+`submit(order)`:
+1. `OrderVerifier` checks the signature, key, time window, environment, account, epoch and policy first.
+2. Whole shares: `floor(approved notional / limit price)`. A SELL is never larger than the broker-held
+   quantity. Less than one share is REJECTED and nothing is sent.
+3. The `order_id` is recorded durably in the idempotency store before the request.
+4. `POST /v2/orders` is a limit IOC order with the derived `client_order_id`.
+5. The order is followed until final. If it is still open after 3 s it is cancelled and followed again;
+   still open => HALT.
+6. It returns one aggregate fill. The fee is 0 (no commission; regulatory sell fees are not modelled).
+
+Any answer it cannot interpret raises `BrokerStateUnknown`. That covers a timeout, a reset connection,
+429, 5xx, an echo of a different order, more filled than ordered, or a fill without a price. The pipeline
+HALTs, the order stays RESERVED, and recovery settles it by `client_order_id` lookup. It is never resent.
+403 and 422 are definite rejections. `broker_positions()` retries once and then HALTs.
+`account_summary()` refuses an account that is blocked, inactive or not in USD.
+
+Known limits:
+* A transient positions error HALTs the session (fail closed; a human acknowledges it before the next session).
+* Fees on sells are not modelled.
+* The broker view is read at the start of each cycle, not streamed (no trade-updates stream yet).
+
 ## Next steps (not built yet)
 
-2. Account adapter: `GET /v2/account`, `/v2/positions` and open orders give `AccountSnapshot` and the broker view.
-3. Alpaca Paper `ExecutionPort`. Limit orders get whole-share `qty = floor(approved notional / limit price)`
-   (Alpaca's notional orders are market-only). `client_order_id` is the existing derivation; recovery uses
-   `GET /v2/orders:by_client_order_id`, and fills are polled. It needs its own approval and the PAPER mode
-   permission, which only the owner can grant.
-4. A real-symbol instrument registry, universe and risk policy v3 (needs approval). After that, SHADOW and
-   PAPER sessions per the roadmap.
+3. PAPER wiring (needs the owner: an approval plus adding PAPER to the permitted modes, which Claude may
+   never do). It covers the composition root with the risk service, Alpaca data + status + execution, the
+   portfolio starting from the broker's cash, and a reconciliation of broker positions at start.
+4. A real-symbol instrument registry, universe and risk policy v3. `min_order_notional` must exceed the
+   highest share price, or orders are below one share. Needs approval.

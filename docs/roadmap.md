@@ -123,6 +123,10 @@ chat); approval entries for the new /risk, /execution and vault code; certificat
 
 ## P6: PAPER with Alpaca Paper
 
+**Status:** the `ExecutionPort` adapter is built and tested on recorded-shape responses (`execution/alpaca_paper.py`,
+`docs/alpaca.md`). It is not in the registry; PAPER is not permitted. Open: the PAPER composition root, risk
+policy v3 with real symbols, the owner's keys, approval and mode permission, and the 20 sessions.
+
 Deliverables: Alpaca Paper `ExecutionPort` adapter (execution service only); `client_order_id`
 derivation; broker reconciliation (positions, orders, cash) before every signature and on restart;
 PAPER entry in the registry and permitted modes.

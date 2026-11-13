@@ -2,7 +2,8 @@
 
 Allowed: the model transport (key only via a SecretsProvider, no tools), the risk-service link (mutual TLS
 on loopback, ADR 0003 step 3) and the read-only Alpaca data path (WebSocket stream, GET-only HTTPS to the
-paper host). No order-sending network code exists.
+paper host) and the Alpaca PAPER trading client (fixed paper host, six allow-listed requests). The paper
+execution port is not in the execution registry, and PAPER is not a permitted mode: only the owner changes that.
 """
 import ast
 from pathlib import Path
@@ -20,6 +21,7 @@ ALLOWED = {
     "risk_service/client.py": {"http", "socket", "ssl"},
     "market_data/websocket.py": {"socket", "ssl"},          # Alpaca stream (read-only, host allow-list)
     "account_data/https_transport.py": {"http", "ssl"},     # GET-only, paper host allow-list
+    "execution/alpaca_http.py": {"http", "ssl"},            # paper trading API, request allow-list, not registered
 }
 
 
@@ -41,7 +43,8 @@ def test_no_network_libraries_imported_anywhere():
 
 def test_the_allow_list_is_exactly_the_model_transport_and_the_risk_service_link():
     assert set(ALLOWED) == {"model_client/anthropic_transport.py", "risk_service/tls.py", "risk_service/server.py",
-                            "risk_service/client.py", "market_data/websocket.py", "account_data/https_transport.py"}
+                            "risk_service/client.py", "market_data/websocket.py", "account_data/https_transport.py",
+                            "execution/alpaca_http.py"}
     for rel, modules in ALLOWED.items():                 # no stale entry: each module really uses what it may
         assert modules <= set(_imports(SRC / rel)), rel
     used = {p.relative_to(SRC).as_posix() for p in SRC.rglob("*.py") if "anthropic" in set(_imports(p))}
@@ -54,7 +57,10 @@ def test_the_allow_list_is_exactly_the_model_transport_and_the_risk_service_link
 def test_broker_execution_is_mock_only():
     assert registry.permitted_adapters() == {Mode.BACKTEST: "SimulatedBroker"}
     names = {p.stem for p in (SRC / "execution").glob("*.py")}
-    assert names == {"__init__", "ports", "registry", "simulated_broker", "cost_model", "verifier", "idempotency"}
+    assert names == {"__init__", "ports", "registry", "simulated_broker", "cost_model", "verifier", "idempotency",
+                     "alpaca_http", "alpaca_paper"}
+    registry_text = (SRC / "execution" / "registry.py").read_text(encoding="utf-8")
+    assert "alpaca" not in registry_text.lower()          # built and tested, but not reachable from any mode
 
 
 def test_the_risk_service_link_cannot_be_pointed_away_from_loopback():

@@ -101,6 +101,17 @@ Review this document whenever a module crosses a trust boundary or a new mode is
 | T51 | Hostile or broken frames (masked, binary, oversize, fragments, NaN, duplicate keys, unknown symbols) | strict WebSocket framing and size limits; strict JSON; unknown symbols rejected; malformed messages counted and dropped, many in a row drop the feed | `test_websocket_protocol_violations_end_the_connection`, `test_bad_messages_are_dropped_and_counted` |
 | T52 | Wrong market status (clock skew, stale clock, wrong asset) makes a closed or halted market look open | any error, skew > 2 s or mismatched answer => UNKNOWN => NO_TRADE; failures are not cached | `test_any_clock_problem_is_unknown`, `test_asset_status_mapping`, `test_asset_status_is_cached_but_failures_are_not` |
 
+### Alpaca PAPER execution (roadmap P6, see docs/alpaca.md)
+
+| ID | Threat | Controls | Test |
+|---|---|---|---|
+| T53 | The execution port is used for something other than one signed order (cancel all, close all, replace, account settings, the live account) | fixed paper host constant; six-entry method+path allow-list checked before any connection; registry does not expose the port | `test_the_client_refuses_everything_outside_the_allow_list`, `test_the_live_host_appears_nowhere_in_the_execution_package`, `test_broker_execution_is_mock_only` |
+| T54 | A forged, expired or replayed order reaches Alpaca | verifier first, idempotency reservation before the request, client_order_id derived from the signed order | `test_a_forged_or_expired_order_is_refused_before_any_request`, `test_a_replayed_order_is_sent_once` |
+| T55 | An order bigger than approved, or an accidental short | whole shares floored from the approved notional at the limit price; SELL capped at broker-held quantity | `test_a_signed_order_becomes_one_ioc_limit_order_for_whole_shares`, `test_a_sell_never_exceeds_what_the_broker_holds` |
+| T56 | Ambiguous broker answer leads to a double order or an unknown position | BrokerStateUnknown => HALT; order stays RESERVED; recovery by client_order_id lookup; never resent | `test_any_ambiguous_answer_halts_and_leaves_the_order_for_recovery`, `test_an_order_still_open_after_cancel_halts` |
+| T57 | A resting order the risk gateway does not know about | IOC; anything still open after the wait is cancelled; still open => HALT | `test_an_order_left_open_is_cancelled_then_settled` |
+| T58 | Trading key leaks | sent only as headers; never in bodies, errors or logs | `test_only_post_carries_a_body_and_secrets_stay_out_of_errors`, `test_a_signed_order_becomes_one_ioc_limit_order_for_whole_shares` |
+
 ### Control room (`ui/`, see ui/README.md)
 
 | ID | Threat | Controls | Test |

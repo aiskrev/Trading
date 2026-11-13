@@ -19,7 +19,9 @@ Paste this into a new session, or tell it: "read docs/session-handoff.md, CLAUDE
   APR-0009 risk service as its own process (mTLS on loopback, `src/trading_agent/risk_service/`), network allow-list
   extended to it (supersedes APR-0008 for `tests/architecture/test_no_network_code.py`) ·
   APR-0010 read-only Alpaca data path: IEX WebSocket stream, clock and asset status, `scripts/alpaca_check.py`
-  (owner chose Alpaca for data + paper broker; see `docs/alpaca.md`; supersedes APR-0009 for test_no_network_code.py). Editing an approved
+  (owner chose Alpaca for data + paper broker; see `docs/alpaca.md`; supersedes APR-0009 for test_no_network_code.py). ·
+  APR-0011 Alpaca PAPER execution port (`execution/alpaca_paper.py`, six allow-listed requests, IOC, HALT on any
+  ambiguous answer); not registered, PAPER not permitted (supersedes APR-0010 for test_no_network_code.py). Editing an approved
   file voids its approval until a new entry is added.
 * Working pattern the owner expects: do the work, run tests, show results, **ask before committing**
   (commits auto-push to a **public** GitHub repo), ask for approvals with an explicit question. Never ask for

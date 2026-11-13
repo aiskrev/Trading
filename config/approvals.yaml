@@ -240,3 +240,27 @@ approvals:
       for tests/architecture/test_no_network_code.py. Approved before commit; the approving commit is the one
       that adds this entry.
     not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
+  - id: APR-0011
+    date: 2026-11-13
+    approver: project owner
+    approved_via: Claude Code session (owner's own words below)
+    statement: "Одобрявам APR-0011"
+    modes: [BACKTEST]
+    files:
+      src/trading_agent/execution/alpaca_http.py: 5b7ea2d03da8f3ae509881ac7e02c7a7eac7a6f53a9d916b30cb0ebb29ac1cd4
+      src/trading_agent/execution/alpaca_paper.py: ddad63dd1b9af9ad8961dbd7fa1fe92eb69adff178b72913cbfc5065382f968e
+      tests/architecture/test_no_network_code.py: 1fa286f4ab08b38b86217ba5c8f3d024230ebf79c6dff50b0e48dc6376065b5c
+    code_scope: >-
+      Roadmap P6, /execution and credentials-touching code, BACKTEST stage. execution/alpaca_http.py: Alpaca PAPER
+      trading client, fixed paper host constant, exactly six method+path requests (POST /v2/orders, GET and DELETE
+      one order by id, GET by client_order_id, GET positions, GET account); key from the vault secret alpaca-paper,
+      sent only as headers. execution/alpaca_paper.py: AlpacaPaperBroker ExecutionPort; verifier first, whole-share
+      quantity floored from the approved notional, SELL capped at broker-held quantity, idempotency reservation
+      before the request, limit IOC with the derived client_order_id, follow to final state, cancel if still open,
+      any ambiguous answer => BrokerStateUnknown (HALT, recovery by lookup, never resent). The port is NOT in the
+      execution registry and PAPER is NOT a permitted mode. test_no_network_code allow-lists execution/alpaca_http.py
+      and asserts the registry has no Alpaca entry. Does NOT approve: registering the port, any mode change, the live
+      host, a risk policy for real symbols, or any order to Alpaca. Tests: tests/invariants/test_alpaca_paper_broker.py,
+      tests/architecture/test_no_network_code.py. Supersedes APR-0010 for tests/architecture/test_no_network_code.py.
+      Approved before commit; the approving commit is the one that adds this entry.
+    not_approved_for: [REPLAY, PAPER, SHADOW, CANARY_LIVE, LIMITED_LIVE, FULL_CONFIGURED_LIVE]
